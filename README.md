@@ -127,9 +127,9 @@ deployed, the token and a webhook secret as its secrets, the webhook set.
 
 ## Step 7 (2026-10-29): live, bge-m3
 
-Deployed: https://okay-chat-edge.okay-effects.workers.dev, the bot @Rozum_chat_bot on its webhook (rozum's polling
-bridge for that bot, com.rozum.telegram, stopped; back: `deleteWebhook`, then `launchctl bootstrap gui/$(id -u)
-~/Library/LaunchAgents/com.rozum.telegram.plist`). `EMBED = "ai"`: Workers AI's bge-m3, on the free plan — 121 tokens
+Deployed: https://okay-chat-edge.okay-effects.workers.dev, the bot @OkayChatTestBot on its webhook
+(okay-chat's test bot, its token in okay-chat's `.env`; okay-chat run locally with it would poll — a webhook stops
+that, `deleteWebhook` gives it back). `EMBED = "ai"`: Workers AI's bge-m3, on the free plan — 121 tokens
 cost 0.13 neurons (~1075 a million), a message ~0.02 of the 10 000 a day. `scripts/e2e.sh` stays on trigrams.
 
 bge-m3 on subjects (the `what` slot), measured on the account: a trade against itself 0.72–0.89 (сантехник /
