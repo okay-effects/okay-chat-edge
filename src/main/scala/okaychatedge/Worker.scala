@@ -34,6 +34,12 @@ object Edge:
 
   def route(text: String): Route = router.route(table, text)
 
+  /** an intent's slot, by okay-chat's pattern */
+  def slot(intent: String, name: String, text: String): Option[String] = router.slot(intent, name, text)
+
+  /** a message's vector by the static table */
+  def encode(text: String): Option[Float32Array] = table.encode(text)
+
   @JSExport("route")
   def routeJs(text: String): js.Dynamic =
     val r = route(text)

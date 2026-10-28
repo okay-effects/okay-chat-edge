@@ -10,7 +10,14 @@ final case class Route(intent: String, by: String, probability: Double = 0.0, ma
  * ONE MESSAGE IN, ONE INTENT OUT, as okay-chat routes it: the RULES first (okay-chat's `intents.json`, built by its
  * catalogue), then — for the intents read by meaning — the static table's embedding and okay's PROBE over it.
  */
-final class Router(rules: Vector[(String, js.RegExp)], probe: Probe):
+final class Router(rules: Vector[(String, js.RegExp)], probe: Probe, slots: Map[(String, String), js.RegExp]):
+
+  /** an intent's slot, as okay-chat's slot pattern captures it (its first group) */
+  def slot(intent: String, name: String, text: String): Option[String] =
+    slots.get((intent, name)).flatMap { p =>
+      val m = p.exec(text)
+      if m == null || m.length < 2 then None else m(1).toOption.map(_.trim).filter(_.nonEmpty)
+    }
 
   /** the intent whose rule matches first */
   def byRule(text: String): Option[String] = rules.find((_, p) => p.test(text)).map(_._1)
@@ -27,11 +34,20 @@ final class Router(rules: Vector[(String, js.RegExp)], probe: Probe):
 object Router:
   /** the router: okay-chat's built `intents.json` (its rules), the probe's weights (`fit`) */
   def apply(built: String, probe: Probe): Router =
+    // okay-chat's `rank`: a total order, the lower first, 50 where an intent names none (its Catalog's default) — so
+    // «преподаю английский, cara@x.pl» is an offer (10) before it is a contact (50)
+    val ranked = intents(built).sortBy(i => i.rank.asInstanceOf[js.UndefOr[Int]].getOrElse(50))
     val rules = for
-      i <- intents(built)
+      i <- ranked
       r <- i.rules.asInstanceOf[js.UndefOr[js.Array[String]]].map(_.toVector).getOrElse(Vector.empty)
     yield (i.name.asInstanceOf[String], Rules.compile(r))
-    new Router(rules, probe)
+    val slots = (for
+      i <- ranked
+      sl <- i.slots.asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]].map(_.toVector).getOrElse(Vector.empty)
+      if !js.isUndefined(sl.pattern)
+    yield (i.name.asInstanceOf[String], sl.name.asInstanceOf[String]) -> Rules.compile(sl.pattern.asInstanceOf[String]))
+      .toMap
+    new Router(rules, probe, slots)
 
   private def intents(built: String): Vector[js.Dynamic] =
     js.JSON.parse(built).intents.asInstanceOf[js.Array[js.Dynamic]].toVector

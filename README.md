@@ -69,6 +69,27 @@ answer, the seeker refused her own ask, the provider accepting and each side giv
 deal not declined after, a withdrawal by its seeker only, and two answers at once of which exactly one wins. The Worker
 306 KB gzipped.
 
+## Step 4 (2026-10-28): candidates
+
+The market is D1 (`Market`): every offer and need a listing — whose, which side, its words, its SUBJECT (okay-chat's
+`what` slot: its own rule's capture, «ремонтирую **сантехнику**», the address and what follows a comma taken out) and
+the subject's vector. A need is answered with the closest others' offers, numbered; «спроси 1», «спроси всех»
+(okay-chat's `ask_candidates` rules) ask them — a deal each, for that need.
+
+The static table cannot match a need to an offer: it was distilled from okay-chat's INTENT corpus and has no trades
+in it («сантехник», «фото», «свадеб» are not among its 5363 units). So a subject's vector is `Embed`'s, in the space
+the Worker's variable `EMBED` names — and a listing keeps its space's name, so two spaces are never compared:
+
+- `trigrams` (the default; what `wrangler dev` has): no model — the words' character trigrams hashed into 512
+  buckets. Measured (`node bench/similar.mjs`): related subjects 0.34–0.84 («сантехник» / «сантехнику» 0.84,
+  «электрик» / «электромонтаж» 0.49), unrelated 0–0.12; the floor is 0.3. One language only.
+- `ai`: Workers AI's `@cf/baai/bge-m3`, multilingual — an encoder, not a generator (okay-chat runs its own encoder
+  in its process). Remote only: it needs a Cloudflare account (`wrangler login`), and is NOT yet run.
+
+Ranking is in the Worker (Vectorize is not on the free plan): a need reads the newest 1000 offers of its space.
+`scripts/e2e.sh`: 21 checks — the deal's, and an offer kept, a need answered with the plumber and not the English
+teacher, «спроси 5» refused, «спроси 1» asking the plumber. The Worker 310 KB gzipped.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

@@ -39,9 +39,13 @@ object Chat:
         Durable.get[Int, ActorStep]("count").flatMap { n =>
           val count = n.getOrElse(0) + 1
           val contact = turn.field("contact").collect { case Json.Str(c) => c }
+          val shown = turn.field("shown")
+          val keep = (k: String, v: Option[Json]) =>
+            v.fold(pure[Unit, ActorStep](()))(j => Durable.put[Json, ActorStep](k, j))
           Durable.put[List[Json], ActorStep]("turns", (ts.getOrElse(Nil) :+ turn).takeRight(kept))
             .andThen(Durable.put[Int, ActorStep]("count", count))
             .andThen(contact.fold(pure[Unit, ActorStep](()))(c => Durable.put[String, ActorStep]("contact", c)))
+            .andThen(keep("shown", shown)).andThen(keep("need", shown.flatMap(_ => turn.field("text"))))
             .as(count)
         }
       })
@@ -50,6 +54,11 @@ object Chat:
       case ("POST", "/") | ("POST", "/tell") => Descent.parse(request.body) match
           case Left(e) => pure(Response.text(s"a turn, as JSON: ${e.message}", 400))
           case Right(turn) => append(name, turn).map(n => Response.json(Json.obj("turn" -> Json.Num(BigDecimal(n)))))
+      case ("GET", "/shown") =>
+        Durable.step[ActorStep, InActor, (Option[Json], Option[Json])](name)(Durable.get[Json, ActorStep]("shown")
+          .flatMap(sh => Durable.get[Json, ActorStep]("need").map(n => (sh, n))))
+          .map((sh, n) => Response.json(Json.obj("shown" -> sh.getOrElse(Json.Arr(Vector.empty)),
+            "need" -> n.getOrElse(Json.Str("")))))
       case ("GET", "/contact") =>
         Durable.step[ActorStep, InActor, Option[String]](name)(Durable.get[String, ActorStep]("contact"))
           .map(c => c.map(Response.text(_)).getOrElse(Response.text("", 404)))
@@ -102,6 +111,42 @@ object Chat:
                 .map(cs => s"сделка $n: ${flow.state}" + (if cs.isEmpty then "" else s"; контакт — ${cs.mkString(", ")}"))
         }
 
+  /** what a turn says besides its reply: the candidates it showed, kept by the conversation for «спроси 1 2» */
+  final case class Said(reply: String, shown: Option[Vector[String]] = None)
+
+  /** an offer kept in the market; a need kept, and answered with the closest offers, numbered */
+  private def listed(me: String, side: String, text: String, at: Long): Said ! Cloud =
+    val what = Embed.what(Edge.slot(side, "what", text), text)
+    Embed.space.flatMap(space => Embed(space, what).flatMap {
+      case None => pure(Said("не понял, что именно — назовите словами"))
+      case Some(v) =>
+        Market.add(me, side, text, what, space, v, at).andThen(
+          if side == "offer" then pure(Said("записал, что вы предлагаете — приведу тех, кому это нужно"))
+          else Market.candidates(me, space, v).map { cs =>
+            if cs.isEmpty then Said("записал, что вам нужно; пока никого — сообщу", Some(Vector.empty))
+            else Said(cs.zipWithIndex.map((c, i) => s"${i + 1}. ${c.text}").mkString("нашёл:\n", "\n",
+              "\n«спроси 1» — спрошу его; «спроси всех» — всех"), Some(cs.map(_.party).toVector))
+          })
+    })
+
+  private val all = """(?iu)(?:^|\s)(всех|все|усіх|всіх|wszystkich|all)(?:\s|$)""".r
+
+  /** «спроси 1 2», «спроси всех»: the conversation's last shown candidates asked — a deal each, for its last need */
+  private def askShown(me: String, text: String, at: Long): Said ! Cloud =
+    Objects.call[Cloud]("CONVERSATIONS", me, Request("GET", "/shown")).map(parsed).flatMap { j =>
+      val shown = j.field("shown").collect { case Json.Arr(xs) => xs.collect { case Json.Str(p) => p } }
+        .getOrElse(Vector.empty)
+      val need = j.field("need").collect { case Json.Str(t) => t }.getOrElse("")
+      val picked =
+        if all.findFirstIn(text).isDefined then shown
+        else number.findAllIn(text).map(_.toInt).toVector.distinct.flatMap(i => shown.lift(i - 1))
+      if shown.isEmpty then pure(Said("сначала скажите, что вам нужно — покажу, кто есть"))
+      else if picked.isEmpty then pure(Said(s"кого спросить? номера от 1 до ${shown.size}, или «спроси всех»"))
+      else picked.foldLeft(pure[Vector[Long], Cloud](Vector.empty))((acc, p) =>
+        acc.flatMap(ns => ask(me, p, need, at).map(ns :+ _)))
+        .map(ns => Said(s"спросил: ${ns.map(n => s"сделка $n").mkString(", ")} — сообщу, кто возьмётся"))
+    }
+
   /** a deal asked: its number from `Numbers`, the deal made, the provider told how to answer, the seeker told */
   private def ask(seeker: String, provider: String, what: String, at: Long): Long ! Cloud =
     Objects.call[Cloud]("NUMBERS", "deals", Request("POST", "/")).map(_.body.trim.toLong).flatMap { n =>
@@ -123,15 +168,20 @@ object Chat:
       case ("POST", List("", "c", id)) =>
         val route = Edge.route(r.body)
         Clock.now[Cloud].flatMap { at =>
-          val reply: Option[String] ! Cloud =
-            if answers(route.intent) then answer(id, route.intent, r.body, at).map(Some(_)) else pure(None)
+          val reply: Option[Said] ! Cloud = route.intent match
+            case i if answers(i) => answer(id, i, r.body, at).map(t => Some(Said(t)))
+            case "offer" | "need" => listed(id, route.intent, r.body, at).map(Some(_))
+            case "ask_candidates" => askShown(id, r.body, at).map(Some(_))
+            case _ => pure(None)
           reply.flatMap { said =>
             val turn = Json.Obj(Vector("text" -> Json.Str(r.body), "route" -> routeJson(route),
-              "at" -> Json.Num(BigDecimal(at))) ++ said.map("reply" -> Json.Str(_)) ++
+              "at" -> Json.Num(BigDecimal(at))) ++ said.map(s => "reply" -> Json.Str(s.reply)) ++
+              said.flatMap(_.shown).map(sh => "shown" -> Json.Arr(sh.map(Json.Str(_)))) ++
               email.findFirstIn(r.body).map("contact" -> Json.Str(_)))
             Objects.call[Cloud]("CONVERSATIONS", id, Request.json("POST", "/", turn)).map(kept =>
               Response.json(Json.Obj(Vector("route" -> routeJson(route),
-                "turn" -> parsed(kept).field("turn").getOrElse(Json.Null)) ++ said.map("reply" -> Json.Str(_)))))
+                "turn" -> parsed(kept).field("turn").getOrElse(Json.Null)) ++
+                said.map(s => "reply" -> Json.Str(s.reply)))))
           }
         }
       case ("GET", List("", "c", id)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))

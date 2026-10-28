@@ -5,6 +5,14 @@ compatibility_date = "2026-10-01"
 # the files the Worker carries: okay-chat's JSON as text (".json.txt": wrangler would parse a .json)
 rules = [{ type = "Text", globs = ["**/*.json.txt"], fallthrough = false }]
 
+# the space a listing's subject is matched in: "trigrams" (no model; what wrangler dev has) or "ai" (Workers AI's
+# bge-m3, multilingual — with the AI binding below, on a Cloudflare account)
+[vars]
+EMBED = "trigrams"
+
+# [ai]
+# binding = "AI"
+
 # the static table: one value, `static` (scripts/kv.sh puts it)
 [[kv_namespaces]]
 binding = "TABLE"
@@ -30,3 +38,9 @@ new_sqlite_classes = ["Conversation"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Deal", "Numbers"]
+
+# the market: every offer and need a listing (D1: on the free plan)
+[[d1_databases]]
+binding = "MARKET"
+database_name = "okay-chat-edge-market"
+database_id = "00000000-0000-0000-0000-000000000000"

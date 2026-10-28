@@ -41,6 +41,25 @@ object Tools:
     def pc(n: Int) = n * 100.0 / test.length
     js.Dynamic.literal(test = test.length, probe = pc(byProbe), centroid = pc(byCentroid), nearest = pc(byNearest))
 
+  /** two texts' cosine by the static table, and by the market's quantised form */
+  @JSExport
+  def similarity(static: ArrayBuffer, a: String, b: String): js.Dynamic =
+    val t = new StaticTable(new Safetensors(static))
+    (t.encode(a), t.encode(b)) match
+      case (Some(x), Some(y)) =>
+        val q = Market.quantised(y).toArray
+        var s = 0.0; var n = 0.0; var i = 0
+        while i < x.length do { s += x(i) * q(i); n += q(i).toDouble * q(i); i += 1 }
+        js.Dynamic.literal(cosine = StaticTable.dot(x, y), quantised = s / math.sqrt(n))
+      case _ => js.Dynamic.literal(cosine = Double.NaN)
+
+  /** two subjects' cosine by the trigrams */
+  @JSExport
+  def trigramSimilarity(a: String, b: String): Double =
+    (Embed.trigrams(a), Embed.trigrams(b)) match
+      case (Some(x), Some(y)) => StaticTable.dot(x, y)
+      case _ => Double.NaN
+
   @JSExport
   def compileAll(rules: js.Array[String]): Int = rules.toVector.map(Rules.compile).size
 

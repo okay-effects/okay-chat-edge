@@ -5,7 +5,7 @@ set -eu
 here=$(cd "$(dirname "$0")/.." && pwd)
 port=${PORT:-8799}
 cd "$here/worker"
-rm -rf .wrangler/state/v3/do
+rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 npx wrangler dev --port "$port" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid 2>/dev/null' EXIT
@@ -17,19 +17,25 @@ check() { # what, got, expected substring
 }
 say() { curl -s -X POST --data "$2" "$u/c/$1"; }
 
-check "a need routed by rule" "$(say ann 'нужен сантехник, течёт кран')" '"intent":"need"'
-check "an address noticed" "$(say ann 'мой адрес ann@example.com')" '"turn":2'
 check "an offer by rule" "$(say bob 'ремонтирую сантехнику, Вроцлав, bob@example.com')" '"intent":"offer"'
-deal=$(curl -s -X POST --data '{"seeker":"ann","provider":"bob","what":"течёт кран"}' "$u/deals")
-check "a deal asked" "$deal" '"deal":1'
-check "the provider told how to answer" "$(curl -s "$u/c/bob")" 'берусь 1'
+check "another offer" "$(say cara 'могу преподавать английский онлайн, cara@example.com')" 'записал'
+check "no candidates yet asked for" "$(say ann 'спроси 1')" 'сначала скажите'
+need=$(say ann 'нужен сантехник, течёт кран')
+check "a need routed by rule" "$need" '"intent":"need"'
+check "a need answered with the closest offer first" "$need" '1. ремонтирую сантехнику'
+check "the unrelated offer is not a candidate" "$need" 'нашёл'
+case "$need" in *английский*) echo "FAIL the English teacher offered for a plumber: $need"; fail=1 ;; *) echo "ok   not the teacher" ;; esac
+check "an address noticed" "$(say ann 'мой адрес ann@example.com')" '"turn"'
+check "a number out of the list" "$(say ann 'спроси 5')" 'кого спросить'
+check "the shown candidate asked: a deal" "$(say ann 'спроси 1')" 'спросил: сделка 1'
+check "the provider told how to answer" "$(curl -s "$u/c/bob")" 'вас спросили, сделка 1: нужен сантехник, течёт кран'
 check "the seeker cannot accept her own ask" "$(say ann 'берусь 1')" 'нельзя'
 check "the provider accepts: the seeker's address back" "$(say bob 'берусь 1')" 'контакт — ann@example.com'
 check "the seeker told: accepted, and the provider's address" "$(curl -s "$u/c/ann")" 'контакт — bob@example.com'
 check "the deal accepted" "$(curl -s "$u/deals/1")" '"state":"accepted"'
 check "an accepted deal is not declined after" "$(say bob 'отказываюсь 1')" 'нельзя'
 deal2=$(curl -s -X POST --data '{"seeker":"ann","provider":"bob","what":"ещё одна работа"}' "$u/deals")
-check "the next deal's number" "$deal2" '"deal":2'
+check "a deal asked directly" "$deal2" '"deal":2'
 check "the provider cannot withdraw it" "$(curl -s -X POST --data '{"by":"bob"}' "$u/deals/2/withdraw")" 'нельзя'
 check "the seeker withdraws it" "$(curl -s -X POST --data '{"by":"ann"}' "$u/deals/2/withdraw")" 'withdrawn'
 check "the provider told" "$(curl -s "$u/c/bob")" 'отбой по заказу: ещё одна работа'

@@ -8,7 +8,9 @@ Each step measured against the free plan's limits before the next one starts.
 3. DONE — the deal: okay-match's scenario engine ported, a deal an object (a transition a step), global numbers,
    «берусь N» / «отказываюсь N» from a conversation, notices and unlocked addresses written into the parties'
    conversations. A party is a conversation until profiles (with the shared marketplace data in D1).
-4. Candidates: ranked by the same table's vectors in the Worker (no Vectorize: not on the free plan).
+4. DONE — candidates: the market in D1, a listing's subject okay-chat's `what` slot, its vector `Embed`'s (trigrams;
+   bge-m3 on Workers AI with an account — not yet run), ranked in the Worker; «спроси 1 2» asks. Left: bge-m3 measured
+   (separation on okay-chat's trades, as its docs/encoders.md measures); a need kept and told when an offer comes.
 5. Slots and replies: places, amounts, dates (okay-intent's pure extractors), and okay-chat's phrasings.
 6. The page: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,
    and parsing a PDF would not fit 10 ms.
