@@ -88,7 +88,7 @@ the Worker's variable `EMBED` names — and a listing keeps its space's name, so
 
 Ranking is in the Worker (Vectorize is not on the free plan): a need reads the newest 1000 offers of its space.
 `scripts/e2e.sh`: 21 checks — the deal's, and an offer kept, a need answered with the plumber and not the English
-teacher, «спроси 5» refused, «спроси 1» asking the plumber. The Worker 310 KB gzipped.
+teacher, «спроси 5» refused, «спроси 1» asking the plumber. The Worker 318 KB gzipped.
 
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
