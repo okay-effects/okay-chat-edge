@@ -19,8 +19,9 @@ object Market:
   val db = "MARKET"
   /** how many offers a need is ranked against: the newest */
   val window = 1000
-  /** below this a listing is no candidate (the trigrams' measure: unrelated subjects sit under 0.1) */
-  val floor = 0.3
+  /** the least similarity a candidate needs, by space: trigrams 0.3 (unrelated subjects sit under 0.1); bge-m3 on
+   * subjects (measured 2026-10-29) a trade's own 0.72–0.89, another trade's at most 0.61 — 0.65 */
+  def floor(space: String): Double = if space == Embed.bgeM3 then 0.65 else 0.3
 
   private var made = false
   private def schema: Unit ! Cloud =
@@ -58,7 +59,7 @@ object Market:
           case (Some(SqlValue.Text(p)), Some(SqlValue.Text(t)), Some(SqlValue.Blob(b))) =>
             Some(Waiting(p, t, cosine(offer, b.toArray)))
           case _ => None
-      }.filter(_.score >= floor).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
+      }.filter(_.score >= floor(space)).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
     }
 
   /** the others' offers closest to a need, the best of each party, best first */
@@ -72,5 +73,5 @@ object Market:
           case (Some(SqlValue.Text(p)), Some(SqlValue.Text(t)), Some(SqlValue.Blob(b))) =>
             Some(Candidate(p, t, cosine(need, b.toArray)))
           case _ => None
-      }.filter(_.score >= floor).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
+      }.filter(_.score >= floor(space)).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
     }

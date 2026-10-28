@@ -125,6 +125,21 @@ Live: `npx wrangler login`, then `TELEGRAM_TOKEN=<from @BotFather> scripts/deplo
 stops getUpdates, so not okay-chat's): the KV namespace and the D1 database made once, the table into KV, the Worker
 deployed, the token and a webhook secret as its secrets, the webhook set.
 
+## Step 7 (2026-10-29): live, bge-m3
+
+Deployed: https://okay-chat-edge.okay-effects.workers.dev, the bot @Rozum_chat_bot on its webhook (rozum's polling
+bridge for that bot, com.rozum.telegram, stopped; back: `deleteWebhook`, then `launchctl bootstrap gui/$(id -u)
+~/Library/LaunchAgents/com.rozum.telegram.plist`). `EMBED = "ai"`: Workers AI's bge-m3, on the free plan — 121 tokens
+cost 0.13 neurons (~1075 a million), a message ~0.02 of the 10 000 a day. `scripts/e2e.sh` stays on trigrams.
+
+bge-m3 on subjects (the `what` slot), measured on the account: a trade against itself 0.72–0.89 (сантехник /
+сантехнику 0.89, электрик / электромонтажом 0.72, положить / класть плитку 0.87), against another trade at most 0.61;
+the floor 0.65. Across languages uneven: manicure 0.89, elektryk 0.67 reach; hydraulik 0.55, plumber 0.63 do not.
+Whole sentences separate badly (a plumber's need 0.65 to the plumber, 0.62 to the electrician) — the slot matters.
+
+Seen live: «potrzebny elektryk» answered in Russian — no Polish letter, no word okay-chat's list knows; okay-chat
+falls back to its trigram detector there, the edge to the default.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

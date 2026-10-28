@@ -7,16 +7,17 @@ rules = [{ type = "Text", globs = ["**/*.json.txt"], fallthrough = false }]
 
 # the space a listing's subject is matched in: "trigrams" (no model; what wrangler dev has) or "ai" (Workers AI's
 # bge-m3, multilingual — with the AI binding below, on a Cloudflare account)
+# bge-m3 costs ~1075 neurons a million tokens: a message ~0.02 of the free plan's 10 000 a day
 [vars]
-EMBED = "trigrams"
+EMBED = "ai"
 
-# [ai]
-# binding = "AI"
+[ai]
+binding = "AI"
 
 # the static table: one value, `static` (scripts/kv.sh puts it)
 [[kv_namespaces]]
 binding = "TABLE"
-id = "okay-chat-edge-table"
+id = "38f4aeec5adc4cf5802f6ef9e9095ef9"
 
 # a conversation an object, a deal an object, the deals' numbers an object — SQLite under each (the free plan's kind)
 [[durable_objects.bindings]]
@@ -43,4 +44,4 @@ new_sqlite_classes = ["Deal", "Numbers"]
 [[d1_databases]]
 binding = "MARKET"
 database_name = "okay-chat-edge-market"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "ae0fcd7f-6b15-4065-88e9-d523794151f1"
