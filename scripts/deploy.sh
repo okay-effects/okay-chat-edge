@@ -26,9 +26,18 @@ fi
 url=$(npx wrangler deploy | grep -oE 'https://[^ ]+\.workers\.dev' | head -1)
 [ -n "$url" ] || { echo "no workers.dev address in the deploy's output"; exit 1; }
 
-secret=$(openssl rand -hex 24)
+# the webhook's secret kept (~/.okay-chat-edge, 600) for tests against the live Worker
+mkdir -p ~/.okay-chat-edge && chmod 700 ~/.okay-chat-edge
+[ -s ~/.okay-chat-edge/telegram-secret ] || (umask 077; openssl rand -hex 24 > ~/.okay-chat-edge/telegram-secret)
+secret=$(cat ~/.okay-chat-edge/telegram-secret)
 printf %s "$TELEGRAM_TOKEN" | npx wrangler secret put TELEGRAM_TOKEN
 printf %s "$secret" | npx wrangler secret put TELEGRAM_SECRET
+# a secret takes seconds to reach the Worker: updates waiting at the bot, delivered before it, would be refused (403)
+for _ in $(seq 1 20); do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "x-telegram-bot-api-secret-token: $secret" \
+    --data '{"update_id":0}' "$url/telegram")" = 200 ] && break
+  sleep 3
+done
 curl -s "https://api.telegram.org/bot$TELEGRAM_TOKEN/setWebhook" \
   --data-urlencode "url=$url/telegram" --data-urlencode "secret_token=$secret" \
   --data-urlencode 'allowed_updates=["message"]'
