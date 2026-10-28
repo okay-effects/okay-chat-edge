@@ -162,6 +162,17 @@ last Latin one). A Telegram update that fails is answered 200 and logged, not re
 
 `scripts/e2e.sh`: 49 checks (the lane off: `LANE=""`). The Worker 306 KB gzipped.
 
+## Step 9 (2026-10-29): the lane remembers, is capped, and does not claim what it did not do
+
+The lane reads the conversation's last six messages (each cut at 400 characters; user and assistant by turns, as
+Gemma's template demands). A day's budget (`Budget`, one object): `LANE_DAILY` replies, 2000 unless set (~8000
+neurons), then the canned answer — the free plan's own limit is never what stops a reply. okay-chat's second guard
+ported (`ModelLane.commits`: promises, confessions) and the edge's own: the lane records nothing, so a reply saying
+«записал», «сохранил», «zapisałem», «I saved» is not said (seen live: «Записал: вы предлагаете услуги электрика» for
+a sentence nothing had recorded); the prompt says so too, and asks the side when it is not said — «Я электрик из
+Кракова» → «Вы хотите предложить свои услуги или ищете работу? …». The help's «мои заявки» row says what the edge
+does. `scripts/e2e.sh`: 49 checks, the lane on with a budget of 0 (the object asked, the model never).
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

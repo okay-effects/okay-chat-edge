@@ -34,6 +34,11 @@ class_name = "Deal"
 name = "NUMBERS"
 class_name = "Numbers"
 
+# the model lane's day: one object counting its replies (LANE_DAILY, 2000 unless set)
+[[durable_objects.bindings]]
+name = "BUDGET"
+class_name = "Budget"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Conversation"]
@@ -41,6 +46,10 @@ new_sqlite_classes = ["Conversation"]
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Deal", "Numbers"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Budget"]
 
 # the market: every offer and need a listing (D1: on the free plan)
 [[d1_databases]]

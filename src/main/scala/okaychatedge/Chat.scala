@@ -71,6 +71,13 @@ object Chat:
         }
       })
 
+    /** the conversation's last exchanges, as a model reads them: [role, words], the newest last */
+    private def recent(ts: List[Json]): Vector[Json] =
+      val said = (k: String, j: Json) => j.field(k).collect { case Json.Str(s) => s.take(Lane.turnChars) }
+      ts.takeRight(Lane.turns).toVector.flatMap(t =>
+        said("text", t).map("user" -> _).toVector ++ said("reply", t).orElse(said("told", t)).map("assistant" -> _))
+        .takeRight(Lane.turns).map((r, s) => Json.Arr(Vector(Json.Str(r), Json.Str(s))))
+
     def fetch(name: String, request: Request): Response ! InActor = (request.method, request.path) match
       case ("POST", "/") | ("POST", "/tell") => Descent.parse(request.body) match
           case Left(e) => pure(Response.text(s"a turn, as JSON: ${e.message}", 400))
@@ -78,7 +85,9 @@ object Chat:
       case ("GET", "/state") =>
         Durable.step[ActorStep, InActor, Vector[(String, Option[Json])]](name)(
           Vector("shown", "need", "lang").foldLeft(pure[Vector[(String, Option[Json])], ActorStep](Vector.empty))(
-            (acc, k) => acc.flatMap(kv => Durable.get[Json, ActorStep](k).map(v => kv :+ (k -> v)))))
+            (acc, k) => acc.flatMap(kv => Durable.get[Json, ActorStep](k).map(v => kv :+ (k -> v))))
+            .flatMap(kv => Durable.get[List[Json], ActorStep]("turns").map(ts =>
+              kv :+ ("recent" -> Some(Json.Arr(recent(ts.getOrElse(Nil))))))))
           .map(kv => Response.json(Json.Obj(kv.collect { case (k, Some(v)) => k -> v })))
       case ("GET", "/contact") =>
         Durable.step[ActorStep, InActor, Option[String]](name)(Durable.get[String, ActorStep]("contact"))
@@ -100,14 +109,17 @@ object Chat:
   private def parsed(r: Response): Json = Descent.parse(r.body).toOption.getOrElse(Json.Null)
 
   /** what a conversation remembers between turns: the candidates it last showed, for which need, in which language */
-  final case class State(shown: Vector[String], need: String, lang: Option[Lang])
+  final case class State(shown: Vector[String], need: String, lang: Option[Lang],
+                         recent: Vector[(String, String)] = Vector.empty)
 
   private def stateOf(party: String): State ! Cloud =
     Objects.call[Cloud]("CONVERSATIONS", party, Request("GET", "/state")).map(parsed).map { j =>
       State(j.field("shown").collect { case Json.Arr(xs) => xs.collect { case Json.Str(p) => p } }
           .getOrElse(Vector.empty),
         j.field("need").collect { case Json.Str(t) => t }.getOrElse(""),
-        j.field("lang").collect { case Json.Str(c) => c }.flatMap(Lang.parse))
+        j.field("lang").collect { case Json.Str(c) => c }.flatMap(Lang.parse),
+        j.field("recent").collect { case Json.Arr(xs) => xs.collect {
+          case Json.Arr(Vector(Json.Str(r), Json.Str(s))) => (r, s) } }.getOrElse(Vector.empty))
     }
 
   /** the language a party is told in: the one it wrote last */
@@ -220,7 +232,7 @@ object Chat:
         val reply: Option[Said] ! Cloud = route.intent match
           case i if answers(i) => answer(id, i, text, at, l).map(t => Some(Said(t)))
           case "need" if tradeless(Embed.what(Edge.slot("need", "what", text), text)) =>
-            unclear(text, l).map(Some(_))
+            unclear(text, l, state.recent, at).map(Some(_))
           case "offer" | "need" => listed(id, route.intent, text, at, l).map(Some(_))
           case "help" => pure(Some(Said(Phrases.help(l, Edge.help(l)))))
           case "listings" => Market.mine(id, "offer").map(ms =>
@@ -228,7 +240,7 @@ object Chat:
           case "requests" => Market.mine(id, "need").map(ms =>
             Some(Said(if ms.isEmpty then Phrases.noRequests(l) else Phrases.requests(l, ms))))
           case "ask_candidates" => askShown(id, state, text, at, l).map(Some(_))
-          case _ => unclear(text, l).map(Some(_))
+          case _ => unclear(text, l, state.recent, at).map(Some(_))
         reply.flatMap { said =>
           val kept = Json.Obj(Vector("text" -> Json.Str(text), "route" -> routeJson(route),
             "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
@@ -240,11 +252,18 @@ object Chat:
         }
       }
 
-    /** what the edge does not act on: the model lane, told the help and the market; else okay-chat's canned line */
-    private def unclear(text: String, l: Lang): Said ! Cloud =
+    /** what the edge does not act on: the model lane, told the help, the market and the conversation so far — within
+     * the day's budget; else okay-chat's canned line */
+    private def unclear(text: String, l: Lang, recent: Vector[(String, String)], at: Long): Said ! Cloud =
       val help = Edge.help(l)
-      Market.newest(5).flatMap(market => Lane.reply(text, l, help, market))
-        .map(r => Said(r.getOrElse(Phrases.smallTalk(l) + Phrases.help(l, help))))
+      val canned = Said(Phrases.smallTalk(l) + Phrases.help(l, help))
+      Lane.model.flatMap {
+        case None => pure(canned)
+        case Some(m) => Budget.take(at).flatMap(granted =>
+          if !granted then pure(canned)
+          else Market.newest(5).flatMap(market => Lane.reply(m, text, l, help, market, recent))
+            .map(_.fold(canned)(Said(_))))
+      }
 
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))
@@ -271,4 +290,5 @@ object Chat:
       case _ => pure(Response.text("POST /route, POST /c/<id>, GET /c/<id>, POST /deals, GET /deals/<n>", 404))
 
   @JSExportTopLevel("worker")
-  val worker: Worker = Worker(Edges, Map("CONVERSATIONS" -> Conversations, "DEALS" -> Deals, "NUMBERS" -> Numbers))
+  val worker: Worker = Worker(Edges, Map("CONVERSATIONS" -> Conversations, "DEALS" -> Deals, "NUMBERS" -> Numbers,
+    "BUDGET" -> Budget.Days))

@@ -179,3 +179,10 @@ object Phrases:
     case Uk => "У вас поки немає заявок. Скажіть, що шукаєте — я пошукаю і повідомлю про нові."
     case Pl => "Nie masz jeszcze zgłoszeń. Powiedz, czego szukasz — poszukam i dam znać o nowych."
     case En => "You have no requests yet. Tell me what you are looking for — I will search and tell you about new ones."
+
+  /** the help's row for «мои заявки» as the edge keeps them: the list, no «по заявке 1» yet */
+  def requestsHelp(l: Lang): String = l match
+    case Ru => "• «мои заявки» — покажу, что вы ИЩЕТЕ; о новых подходящих сообщу сам"
+    case Uk => "• «мої заявки» — покажу, що ви ШУКАЄТЕ; про нові відповідні повідомлю сам"
+    case Pl => "• „moje zgłoszenia” — pokażę, czego SZUKASZ; o nowych pasujących dam znać sam"
+    case En => "• \"my requests\" — I will show what you are LOOKING FOR, and tell you of new matches myself"

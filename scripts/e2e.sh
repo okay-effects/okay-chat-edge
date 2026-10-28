@@ -8,7 +8,7 @@ cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
-npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE: --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
+npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE_DAILY:0 --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
   --var "TELEGRAM_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT

@@ -31,6 +31,7 @@ const objectClass = (ns) => class extends DurableObject {
 export const Conversation = objectClass("CONVERSATIONS");
 export const Deal = objectClass("DEALS");
 export const Numbers = objectClass("NUMBERS");
+export const Budget = objectClass("BUDGET");
 
 // a model's failure is an answer, not an exception: the free plan's neurons spent, or the model down, and the Scala
 // side reads `{error}` as no answer (the lane says its canned line, an embedding finds nobody)
