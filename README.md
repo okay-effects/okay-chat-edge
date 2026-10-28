@@ -30,7 +30,27 @@ What it took:
 - The regexes WARMED at the isolate's start: V8 compiles a regex on first use, once for Latin and once for Cyrillic
   text (20 and 75 ms) — paid once at the start, never in a request.
 
-Run: `scripts/data.sh` (okay-chat beside this repository), then `cd worker && npx wrangler dev` and
-`curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/route`.
+## Step 2 (2026-10-28): conversations, the table in KV
+
+On okay-serverless: the stateless Worker routes a message, and its CONVERSATION — a Durable Object, one per
+conversation, SQLite under it (the free plan's kind) — keeps its turns, each turn one step of durable state (one
+transaction). The static table moved to KV: an isolate's start may not read KV, so it is read on the isolate's first
+request and kept; the rules and the probe stay modules, warmed at the start.
+
+    POST /route        a message → its intent
+    POST /c/<id>       a message in conversation <id> → its intent and the turn's number
+    GET  /c/<id>       the conversation's turns
+
+| | measured | the free plan's limit |
+|---|---|---|
+| the Worker | **296 KB gzipped** (the code 1.7 MB raw: okay-serverless, okay-scala, okay-http) | 3 MB gzipped |
+| the isolate's start: the module, the rules and the probe, the rules warmed | 40 + 4 + 95 ms | 1 s |
+| the isolate's first request: the table from KV's bytes, the first message | 2.6 + 3.1 ms (KV's wait is not CPU) | 10 ms of CPU |
+| a message, warm | 10–26 µs | |
+
+Checked in `wrangler dev` (workerd): two conversations apart, each turn numbered, the turns read back.
+
+Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
+dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 
 Next: `specs/plan.md`.

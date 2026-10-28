@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "wrangler": "^4.155.0"
+  },
+  "type": "module",
+  "private": true
+}

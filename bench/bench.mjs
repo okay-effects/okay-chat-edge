@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const t0 = performance.now();
-const { worker } = await import("../worker/okay.js");
+const { edge } = await import("../worker/okay.js");
 const tLoad = performance.now();
 const file = readFileSync(new URL("../data/static.safetensors", import.meta.url));
 const bytes = file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
@@ -12,10 +12,16 @@ const built = readFileSync(new URL("../data/intents.json", import.meta.url), "ut
 const corpus = readFileSync(new URL("../data/corpus-intents.json", import.meta.url), "utf8");
 const probe = readFileSync(new URL("../data/probe.json", import.meta.url), "utf8");
 const t1 = performance.now();
-worker.init(bytes, built, probe);
+edge.init(built, probe);
 const t2 = performance.now();
-console.log(`module load ${(tLoad - t0).toFixed(1)} ms; init (table, rules, probe) ${(t2 - t1).toFixed(1)} ms`);
-let tf = performance.now(); worker.route("первое сообщение"); console.log(`the first message ${(performance.now() - tf).toFixed(2)} ms`);
+edge.warm();
+const t3 = performance.now();
+edge.load(bytes);
+const t4 = performance.now();
+console.log(`rules and probe ${(t2 - t1).toFixed(1)} ms, warming the rules ${(t3 - t2).toFixed(1)} ms (the start); ` +
+  `the table from its bytes ${(t4 - t3).toFixed(1)} ms (the first request)`);
+console.log(`module load ${(tLoad - t0).toFixed(1)} ms`);
+let tf = performance.now(); edge.route("первое сообщение"); console.log(`the first message ${(performance.now() - tf).toFixed(2)} ms`);
 
 // the messages: every authored example, and some of a person's own
 const examples = JSON.parse(corpus).intents.flatMap(i => {
@@ -25,16 +31,16 @@ const examples = JSON.parse(corpus).intents.flatMap(i => {
 });
 const mine = ["нужен электрик, не работает розетка", "ремонтирую холодильники, Вроцлав", "что интересного сегодня вечером",
   "potrzebny hydraulik w Krakowie", "привет как дела", "мои заявки", "I can teach English online"];
-for (const m of mine) console.log("  ", JSON.stringify(worker.route(m)), m);
+for (const m of mine) console.log("  ", JSON.stringify(edge.route(m)), m);
 
 // the first call of each message (cold caches), then many rounds
 const msgs = examples.map(e => e[0]);
 let t = performance.now();
-for (const m of msgs) worker.route(m);
+for (const m of msgs) edge.route(m);
 const first = (performance.now() - t) / msgs.length;
 const rounds = 50;
 t = performance.now();
-for (let r = 0; r < rounds; r++) for (const m of msgs) worker.route(m);
+for (let r = 0; r < rounds; r++) for (const m of msgs) edge.route(m);
 const warm = (performance.now() - t) / (rounds * msgs.length);
 console.log(`a message: first pass ${(first * 1000).toFixed(0)} µs, warm ${(warm * 1000).toFixed(0)} µs (${msgs.length} messages)`);
 

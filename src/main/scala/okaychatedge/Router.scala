@@ -10,11 +10,14 @@ final case class Route(intent: String, by: String, probability: Double = 0.0, ma
  * ONE MESSAGE IN, ONE INTENT OUT, as okay-chat routes it: the RULES first (okay-chat's `intents.json`, built by its
  * catalogue), then — for the intents read by meaning — the static table's embedding and okay's PROBE over it.
  */
-final class Router(table: StaticTable, rules: Vector[(String, js.RegExp)], probe: Probe):
+final class Router(rules: Vector[(String, js.RegExp)], probe: Probe):
 
-  def route(text: String): Route =
-    rules.find((_, p) => p.test(text)) match
-      case Some((intent, _)) => Route(intent, "rule")
+  /** the intent whose rule matches first */
+  def byRule(text: String): Option[String] = rules.find((_, p) => p.test(text)).map(_._1)
+
+  def route(table: StaticTable, text: String): Route =
+    byRule(text) match
+      case Some(intent) => Route(intent, "rule")
       case None => table.encode(text).map(byMeaning).getOrElse(Route("?", "unknown words"))
 
   def byMeaning(v: Float32Array): Route =
@@ -22,13 +25,13 @@ final class Router(table: StaticTable, rules: Vector[(String, js.RegExp)], probe
     Route(r.head._1, "probe", r.head._2, r.head._2 - r.lift(1).map(_._2).getOrElse(0.0))
 
 object Router:
-  /** the router: the static table, okay-chat's built `intents.json` (its rules), the probe's weights (`fit`) */
-  def apply(table: StaticTable, built: String, probe: Probe): Router =
+  /** the router: okay-chat's built `intents.json` (its rules), the probe's weights (`fit`) */
+  def apply(built: String, probe: Probe): Router =
     val rules = for
       i <- intents(built)
       r <- i.rules.asInstanceOf[js.UndefOr[js.Array[String]]].map(_.toVector).getOrElse(Vector.empty)
     yield (i.name.asInstanceOf[String], Rules.compile(r))
-    new Router(table, rules, probe)
+    new Router(rules, probe)
 
   private def intents(built: String): Vector[js.Dynamic] =
     js.JSON.parse(built).intents.asInstanceOf[js.Array[js.Dynamic]].toVector

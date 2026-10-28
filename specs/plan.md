@@ -3,8 +3,8 @@
 Each step measured against the free plan's limits before the next one starts.
 
 1. DONE — the router: rules, the static table, the probe; CPU, start and size measured (README.md).
-2. A conversation: a Durable Object for each (SQLite storage — on the free plan), the turn's state and its history;
-   WebSocket with hibernation for a page, plain POST for a bot. On okay-serverless's Cloudflare effects.
+2. DONE — a conversation: a Durable Object for each (SQLite storage), its turns durable, on okay-serverless; the table
+   in KV. Left for the page: a WebSocket with hibernation (the object then routes too: the table from KV in it).
 3. The deal: okay-chat's state machine (pure data) ported — what of okay-match is pure, cross-built; its storage the
    object's SQLite, the marketplace's shared data D1.
 4. Candidates: ranked by the same table's vectors in the Worker (no Vectorize: not on the free plan).
@@ -13,5 +13,5 @@ Each step measured against the free plan's limits before the next one starts.
    and parsing a PDF would not fit 10 ms.
 7. The optional model lane: Workers AI within its 10 000 free neurons a day, capped as okay-chat caps it, or off.
 
-Open: e-mail (a code to register) — what the free plan allows; the table int8 (half the bytes) if the Worker grows
-past 3 MB.
+Open: e-mail (a code to register) — what the free plan allows. The table is in KV now (no longer in the Worker's
+3 MB); int8 would halve its read if the first request's 10 ms ever get tight.

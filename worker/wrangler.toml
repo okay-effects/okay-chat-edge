@@ -1,9 +1,20 @@
-# okay-chat-edge: `npx wrangler dev` here, after `sbt worker` and `node bench/fit.mjs`
+# okay-chat-edge: `npx wrangler dev` here, after `scripts/data.sh` and `scripts/kv.sh --local`
 name = "okay-chat-edge"
 main = "entry.js"
 compatibility_date = "2026-10-01"
-# the files the Worker carries: the table as bytes, okay-chat's JSON as text (".json.txt": wrangler would parse .json)
-rules = [
-  { type = "Data", globs = ["**/*.safetensors"], fallthrough = false },
-  { type = "Text", globs = ["**/*.json.txt"], fallthrough = false },
-]
+# the files the Worker carries: okay-chat's JSON as text (".json.txt": wrangler would parse a .json)
+rules = [{ type = "Text", globs = ["**/*.json.txt"], fallthrough = false }]
+
+# the static table: one value, `static` (scripts/kv.sh puts it)
+[[kv_namespaces]]
+binding = "TABLE"
+id = "okay-chat-edge-table"
+
+# a conversation an object, its storage SQLite (the free plan's kind)
+[[durable_objects.bindings]]
+name = "CONVERSATIONS"
+class_name = "Conversation"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Conversation"]

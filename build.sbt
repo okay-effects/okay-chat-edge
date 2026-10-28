@@ -2,11 +2,20 @@
 import org.scalajs.linker.interface.{ESVersion, ModuleKind}
 
 ThisBuild / scalaVersion := "3.3.8"
+ThisBuild / resolvers ++= Seq(
+  "okay-serverless" at "https://okay-effects.github.io/okay-serverless/maven",
+  "okay-scala" at "https://okay-effects.github.io/okay-scala/maven",
+  "okay-simple" at "https://okay-effects.github.io/okay-simple/maven",
+  "okay-http" at "https://okay-effects.github.io/okay-http/maven",
+  "okay-faces" at "https://okay-effects.github.io/okay-faces/maven",
+  "okay-store" at "https://okay-effects.github.io/okay-store/maven")
 
 lazy val edge = (project in file("."))
   .enablePlugins(ScalaJSPlugin)
   .settings(
     name := "okay-chat-edge",
+    // the cloud as effects: a Worker, its Durable Objects, durable state without replay (okay-serverless)
+    libraryDependencies += "io.github.okay-effects" %%% "okay-serverless-cloudflare" % "0.1.0",
     scalacOptions ++= Seq("-deprecation", "-feature"),
     // an ES module for wrangler; ES2018 for the regexes' \p{L} and lookbehind (the rules are Unicode)
     scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule)
