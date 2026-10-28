@@ -6,9 +6,12 @@ here=$(cd "$(dirname "$0")/.." && pwd)
 port=${PORT:-8799}
 cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
-npx wrangler dev --port "$port" > /tmp/okay-chat-edge-e2e.log 2>&1 &
+tg=$((port + 1))
+node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
+npx wrangler dev --port "$port" --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
+  --var "TELEGRAM_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
-trap 'kill $pid 2>/dev/null' EXIT
+trap 'kill $pid $tgpid 2>/dev/null' EXIT
 for _ in $(seq 1 40); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
 u="http://127.0.0.1:$port"
 fail=0
@@ -57,11 +60,34 @@ check "English" "$(say hal 'I need a plumber for my kitchen')" 'nobody yet'
 check "English, kept" "$(say hal 'take 9')" 'not your deal'
 check "a price is not a language" "$(say hal 'take 9, 40 zł')" 'not your deal'
 
+# Telegram: a webhook's update is a turn of `tg:<id>`, the reply in the webhook's answer; the other side by the bot
+tgsay() { # user id, username, text
+  curl -s -X POST -H 'x-telegram-bot-api-secret-token: test-secret' -H 'content-type: application/json' \
+    --data "{\"update_id\":1,\"message\":{\"message_id\":1,\"chat\":{\"id\":$1,\"type\":\"private\"},
+      \"from\":{\"id\":$1,\"username\":\"$2\"},\"text\":\"$3\"}}" "$u/telegram"
+}
+check "an update without the secret refused" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' "$u/telegram")" '403'
+check "/start: the greeting, in four languages" "$(tgsay 101 ivan '/start')" 'Привет! Чем могу помочь?'
+check "a Telegram offer, answered in the webhook" "$(tgsay 101 ivan 'умею класть плитку в ванной, Вроцлав')" \
+  '"method":"sendMessage","chat_id":"101","text":"записал предложение'
+check "not understood, no language shown: how can I help, in the default" "$(tgsay 102 jane 'hmm')" \
+  'Чем я могу вам помочь?'
+check "a Telegram need finds the Telegram offer" "$(tgsay 102 jane 'нужно положить плитку в ванной')" \
+  'умею класть плитку'
+tgsay 102 jane 'спроси 1' > /dev/null
+check "the provider told by the bot" "$(cat /tmp/okay-chat-edge-tg.jsonl)" '"chat_id":"101","text":"Вас спрашивают'
+deal=$(curl -s "$u/c/tg:101" | grep -o 'берусь [0-9]*' | head -1)
+check "the provider accepts in Telegram: the seeker's account" "$(tgsay 101 ivan "$deal")" 'его контакт: @jane'
+check "the seeker told by the bot, with the provider's account" "$(cat /tmp/okay-chat-edge-tg.jsonl)" \
+  '"chat_id":"102","text":"По сделке'
+check "  …and the provider's account in it" "$(cat /tmp/okay-chat-edge-tg.jsonl)" 'Контакт: @ivan.'
+
 # two answers to one deal at once: the object takes them one at a time — exactly one wins
-curl -s -X POST --data '{"seeker":"ann","provider":"bob","what":"спорная работа"}' "$u/deals" > /dev/null
-say bob 'берусь 4' > /tmp/okay-chat-edge-a & a=$!
-say bob 'отказываюсь 4' > /tmp/okay-chat-edge-b & b=$!
+n=$(curl -s -X POST --data '{"seeker":"ann","provider":"bob","what":"спорная работа"}' "$u/deals" | tr -dc 0-9)
+say bob "берусь $n" > /tmp/okay-chat-edge-a & a=$!
+say bob "отказываюсь $n" > /tmp/okay-chat-edge-b & b=$!
 wait $a $b
-wins=$(cat /tmp/okay-chat-edge-a /tmp/okay-chat-edge-b | grep -c 'по сделке 4' || true)
+wins=$(cat /tmp/okay-chat-edge-a /tmp/okay-chat-edge-b | grep -c "по сделке $n" || true)
 check "two answers at once: exactly one wins" "wins=$wins" "wins=1"
 exit $fail

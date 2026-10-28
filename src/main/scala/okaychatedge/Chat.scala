@@ -38,13 +38,18 @@ object Chat:
       Durable.step[ActorStep, InActor, Int](name)(Durable.get[List[Json], ActorStep]("turns").flatMap { ts =>
         Durable.get[Int, ActorStep]("count").flatMap { n =>
           val count = n.getOrElse(0) + 1
-          val contact = turn.field("contact").collect { case Json.Str(c) => c }
+          // an e-mail written is the address; the door's (a Telegram account) only until there is one
+          val written = turn.field("contact").collect { case Json.Str(c) => c }
+          val door = turn.field("door").collect { case Json.Str(c) => c }
           val shown = turn.field("shown")
           val keep = (k: String, v: Option[Json]) =>
             v.fold(pure[Unit, ActorStep](()))(j => Durable.put[Json, ActorStep](k, j))
           Durable.put[List[Json], ActorStep]("turns", (ts.getOrElse(Nil) :+ turn).takeRight(kept))
             .andThen(Durable.put[Int, ActorStep]("count", count))
-            .andThen(contact.fold(pure[Unit, ActorStep](()))(c => Durable.put[String, ActorStep]("contact", c)))
+            .andThen(written.fold(door.fold(pure[Unit, ActorStep](()))(d =>
+              Durable.get[String, ActorStep]("contact").flatMap(c =>
+                if c.isDefined then pure(()) else Durable.put[String, ActorStep]("contact", d))))(c =>
+              Durable.put[String, ActorStep]("contact", c)))
             .andThen(keep("shown", shown))
             .andThen(keep("lang", turn.field("lang")))
             .andThen(keep("need", turn.field("need").orElse(shown.flatMap(_ => turn.field("text")))))
@@ -72,7 +77,7 @@ object Chat:
 
   private def tell(party: String, text: String, at: Long): Unit ! Cloud =
     Objects.call[Cloud]("CONVERSATIONS", party, Request.json("POST", "/tell",
-      Json.obj("told" -> Json.Str(text), "at" -> Json.Num(BigDecimal(at))))).as(())
+      Json.obj("told" -> Json.Str(text), "at" -> Json.Num(BigDecimal(at))))).andThen(Telegram.push(party, text))
 
   private def contactOf(party: String): Option[String] ! Cloud =
     Objects.call[Cloud]("CONVERSATIONS", party, Request("GET", "/contact"))
@@ -149,7 +154,8 @@ object Chat:
               langOf(w.party).flatMap(lw => Objects.call[Cloud]("CONVERSATIONS", w.party, Request.json("POST", "/tell",
                 Json.obj("told" -> Json.Str(Phrases.appeared(lw, text, w.text)),
                   "shown" -> Json.Arr(Vector(Json.Str(me))), "need" -> Json.Str(w.text),
-                  "at" -> Json.Num(BigDecimal(at))))).as(())))))
+                  "at" -> Json.Num(BigDecimal(at)))))
+                  .andThen(Telegram.push(w.party, Phrases.appeared(lw, text, w.text)))))))
               .as(Said(Phrases.storedOffer(l, what)))
           else Market.candidates(me, space, v).map { cs =>
             if cs.isEmpty then Said(Phrases.nobodyYet(l), Some(Vector.empty))
@@ -187,30 +193,39 @@ object Chat:
      * listing taken down, not a deal — a seeker's withdrawal is `POST /deals/<n>/withdraw` */
     private val answers = Set("accept", "decline")
 
+    /**
+     * ONE MESSAGE IN A CONVERSATION — whichever door it came through (the API, Telegram): routed, answered in its
+     * language, kept as a turn. `contact` is an address the door itself proves (a Telegram account); an e-mail in the
+     * text is one too. The route, the reply if any, the turn's number
+     */
+    def turn(id: String, text: String, contact: Option[String], at: Long): (Route, Option[Said], Json, Lang) ! Cloud =
+      val route = Edge.route(text)
+      stateOf(id).flatMap { state =>
+        // okay-chat's: the message's own language if it shows one, else what this person wrote last
+        val l = Lang.of(text).orElse(state.lang).getOrElse(Lang.default)
+        val reply: Option[Said] ! Cloud = route.intent match
+          case i if answers(i) => answer(id, i, text, at, l).map(t => Some(Said(t)))
+          case "offer" | "need" => listed(id, route.intent, text, at, l).map(Some(_))
+          case "ask_candidates" => askShown(id, state, text, at, l).map(Some(_))
+          case _ => pure(None)
+        reply.flatMap { said =>
+          val kept = Json.Obj(Vector("text" -> Json.Str(text), "route" -> routeJson(route),
+            "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
+            said.map(s => "reply" -> Json.Str(s.reply)) ++
+            said.flatMap(_.shown).map(sh => "shown" -> Json.Arr(sh.map(Json.Str(_)))) ++
+            email.findFirstIn(text).map("contact" -> Json.Str(_)) ++ contact.map("door" -> Json.Str(_)))
+          Objects.call[Cloud]("CONVERSATIONS", id, Request.json("POST", "/", kept)).map(k =>
+            (route, said, parsed(k).field("turn").getOrElse(Json.Null), l))
+        }
+      }
+
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))
       case ("POST", List("", "c", id)) =>
-        val route = Edge.route(r.body)
-        Clock.now[Cloud].flatMap(at => stateOf(id).flatMap { state =>
-          // okay-chat's: the message's own language if it shows one, else what this person wrote last
-          val l = Lang.of(r.body).orElse(state.lang).getOrElse(Lang.default)
-          val reply: Option[Said] ! Cloud = route.intent match
-            case i if answers(i) => answer(id, i, r.body, at, l).map(t => Some(Said(t)))
-            case "offer" | "need" => listed(id, route.intent, r.body, at, l).map(Some(_))
-            case "ask_candidates" => askShown(id, state, r.body, at, l).map(Some(_))
-            case _ => pure(None)
-          reply.flatMap { said =>
-            val turn = Json.Obj(Vector("text" -> Json.Str(r.body), "route" -> routeJson(route),
-              "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
-              said.map(s => "reply" -> Json.Str(s.reply)) ++
-              said.flatMap(_.shown).map(sh => "shown" -> Json.Arr(sh.map(Json.Str(_)))) ++
-              email.findFirstIn(r.body).map("contact" -> Json.Str(_)))
-            Objects.call[Cloud]("CONVERSATIONS", id, Request.json("POST", "/", turn)).map(kept =>
-              Response.json(Json.Obj(Vector("route" -> routeJson(route),
-                "turn" -> parsed(kept).field("turn").getOrElse(Json.Null)) ++
-                said.map(s => "reply" -> Json.Str(s.reply)))))
-          }
-        })
+        Clock.now[Cloud].flatMap(at => turn(id, r.body, None, at)).map((route, said, n, _) =>
+          Response.json(Json.Obj(Vector("route" -> routeJson(route), "turn" -> n) ++
+            said.map(s => "reply" -> Json.Str(s.reply)))))
+      case ("POST", List("", "telegram")) => Telegram.update(r)
       case ("GET", List("", "c", id)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))
       case ("POST", List("", "deals")) => Descent.parse(r.body).toOption match
           case None => pure(Response.text("{seeker, provider, what}", 400))

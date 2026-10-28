@@ -107,6 +107,24 @@ its own. Every pattern a JS RegExp, as the rules are.
 `scripts/e2e.sh`: 33 checks — the earlier ones in okay-chat's words, and a Ukrainian, a Polish and an English person
 answered in their languages, kept for a turn with no evidence, a price not taken for Polish. The Worker 298 KB gzipped.
 
+## Step 6 (2026-10-29): Telegram
+
+The bot is a door to the same conversations (`Telegram`): Telegram POSTs each update to `/telegram` (a webhook —
+a Worker has an address and no loop to poll from; okay-chat polls), the secret given at `setWebhook` checked in its
+header. A private chat's message is a turn of conversation `tg:<user id>`; the reply rides back in the webhook's
+answer (`{"method": "sendMessage", …}`, no request of ours), and what another party is told — a deal asked, a deal
+bound, an offer for a waiting need — the bot sends with its token. The account is the address, as in okay-chat:
+`@username` until the person writes an e-mail. `/start` is okay-chat's greeting in four languages; a message the
+edge does not act on yet gets «Чем я могу вам помочь?» in its language.
+
+`scripts/e2e.sh`: 42 checks — the earlier ones, and Telegram against a stand-in for the Bot API
+(`scripts/fake-telegram.mjs`): an update without the secret refused, /start, an offer, a need finding it, «спроси 1»
+reaching the provider by the bot, «берусь N» in Telegram giving each side the other's account.
+
+Live: `npx wrangler login`, then `TELEGRAM_TOKEN=<from @BotFather> scripts/deploy.sh` — a bot of its own (a webhook
+stops getUpdates, so not okay-chat's): the KV namespace and the D1 database made once, the table into KV, the Worker
+deployed, the token and a webhook secret as its secrets, the webhook set.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

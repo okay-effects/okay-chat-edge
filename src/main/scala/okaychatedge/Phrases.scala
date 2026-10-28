@@ -113,3 +113,18 @@ object Phrases:
     case Uk => s"передав відмову за угодою $n"
     case Pl => s"przekazałem odmowę w transakcji $n"
     case En => s"declined deal $n"
+
+  def howCanIHelp(l: Lang): String = l match
+    case Ru => "Чем я могу вам помочь?"
+    case Uk => "Чим я можу вам допомогти?"
+    case Pl => "W czym mogę pomóc?"
+    case En => "How can I help?"
+
+  /** the first thing anyone sees, before a word of theirs is read: all four languages at once */
+  def greeting: String =
+    Vector(
+      "Hi! How can I help?",
+      "Cześć! W czym mogę pomóc?",
+      "Вітаю! Чим можу допомогти?",
+      "Привет! Чем могу помочь?"
+    ).mkString("\n")
