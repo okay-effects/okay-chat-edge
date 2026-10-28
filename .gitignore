@@ -1,0 +1,8 @@
+target/
+project/target/
+project/project/
+worker/node_modules/
+worker/.wrangler/
+worker/okay.js
+data/
+bench/tools.js

@@ -1,0 +1,9 @@
+# okay-chat-edge: `npx wrangler dev` here, after `sbt worker` and `node bench/fit.mjs`
+name = "okay-chat-edge"
+main = "entry.js"
+compatibility_date = "2026-10-01"
+# the files the Worker carries: the table as bytes, okay-chat's JSON as text (".json.txt": wrangler would parse .json)
+rules = [
+  { type = "Data", globs = ["**/*.safetensors"], fallthrough = false },
+  { type = "Text", globs = ["**/*.json.txt"], fallthrough = false },
+]
