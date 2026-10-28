@@ -128,3 +128,54 @@ object Phrases:
       "Вітаю! Чим можу допомогти?",
       "Привет! Чем могу помочь?"
     ).mkString("\n")
+
+  def smallTalk(l: Lang): String = l match
+    case Ru => "это рынок спроса и предложения: здесь предлагают работу, услуги, товары, аренду — и ищут их. "
+    case Uk => "це ринок попиту і пропозиції: тут пропонують роботу, послуги, товари, оренду — і шукають їх. "
+    case Pl => "to rynek popytu i podaży: tu oferuje się pracę, usługi, towary, wynajem — i ich szuka. "
+    case En => "this is a market of supply and demand: people offer work, services, goods, rentals — and look for them. "
+
+  /** okay-chat's help: built from the intent table's rows (here: the intents the edge acts on) */
+  def help(l: Lang, rows: Vector[String]): String =
+    val head = l match
+      case Ru => "Вот всё, что я умею."
+      case Uk => "Ось усе, що я вмію."
+      case Pl => "Oto wszystko, co potrafię."
+      case En => "Here is everything I can do."
+    val tail = l match
+      case Ru => "Пишите обычными словами — команды знать не обязательно, примеры выше просто короче."
+      case Uk => "Пишіть звичайними словами — команди знати не обов'язково, приклади вище просто коротші."
+      case Pl => "Pisz zwykłymi słowami — komend znać nie trzeba, powyższe przykłady są po prostu krótsze."
+      case En => "Write in ordinary words: you do not need the commands, the examples above are just shorter."
+    s"$head\n\n${rows.mkString("\n")}\n\n$tail"
+
+  /** what a person offered (okay-chat's, without its «удали предложение 1»: the edge cannot take one down yet) */
+  def offers(l: Lang, rows: Vector[String]): String =
+    (l match
+      case Ru => "ваши предложения:"
+      case Uk => "ваші пропозиції:"
+      case Pl => "twoje oferty:"
+      case En => "your offers:") + rows.zipWithIndex.map((w, i) => s"\n${i + 1}) $w").mkString
+
+  def noOffers(l: Lang): String = l match
+    case Ru => "У вас пока нет предложений. Расскажите, что предлагаете или что объявляете — " +
+      "и я запишу."
+    case Uk => "У вас поки немає пропозицій. Розкажіть, що пропонуєте чи що оголошуєте — " +
+      "і я запишу."
+    case Pl => "Nie masz jeszcze ofert. Powiedz, co oferujesz albo co ogłaszasz — zapiszę."
+    case En => "You have no offers yet. Tell me what you offer or what you are announcing " +
+      "and I will record it."
+
+  def requests(l: Lang, rows: Vector[String]): String =
+    (l match
+      case Ru => "ваши заявки:"
+      case Uk => "ваші заявки:"
+      case Pl => "twoje zgłoszenia:"
+      case En => "your requests:") + rows.zipWithIndex.map((w, i) => s"\n${i + 1}) $w").mkString
+
+  /** the edge keeps every need it is told (no «запомни» needed, as okay-chat's wording asks) */
+  def noRequests(l: Lang): String = l match
+    case Ru => "У вас пока нет заявок. Скажите, что ищете — я поищу и сообщу о новых."
+    case Uk => "У вас поки немає заявок. Скажіть, що шукаєте — я пошукаю і повідомлю про нові."
+    case Pl => "Nie masz jeszcze zgłoszeń. Powiedz, czego szukasz — poszukam i dam znać o nowych."
+    case En => "You have no requests yet. Tell me what you are looking for — I will search and tell you about new ones."

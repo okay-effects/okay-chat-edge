@@ -16,7 +16,9 @@ Each step measured against the free plan's limits before the next one starts.
 5a. DONE — Telegram: a webhook door to the conversations, the other side told by the bot (`scripts/deploy.sh`).
 6. The page: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,
    and parsing a PDF would not fit 10 ms.
-7. The optional model lane: Workers AI within its 10 000 free neurons a day, capped as okay-chat caps it, or off.
+7. DONE — the model lane: Workers AI (gemma-4-26b-a4b-it), within the 10 000 free neurons a day (~2300 replies);
+   what the edge does not act on. Left: a per-day cap of our own (okay-chat's), the conversation's last turns as
+   context, okay-chat's stray/promise checks on the reply.
 
 Open: e-mail (a code to register) — what the free plan allows. The table is in KV now (no longer in the Worker's
 3 MB); int8 would halve its read if the first request's 10 ms ever get tight.

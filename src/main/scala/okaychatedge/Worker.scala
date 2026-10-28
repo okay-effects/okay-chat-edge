@@ -37,6 +37,9 @@ object Edge:
   /** an intent's slot, by okay-chat's pattern */
   def slot(intent: String, name: String, text: String): Option[String] = router.slot(intent, name, text)
 
+  /** the help rows for the intents the edge acts on (`Chat.acted`) */
+  def help(l: Lang): Vector[String] = router.help(Lang.code(l), Chat.acted)
+
   /** a message's vector by the static table */
   def encode(text: String): Option[Float32Array] = table.encode(text)
 

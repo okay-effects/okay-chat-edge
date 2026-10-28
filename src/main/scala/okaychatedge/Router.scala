@@ -10,7 +10,15 @@ final case class Route(intent: String, by: String, probability: Double = 0.0, ma
  * ONE MESSAGE IN, ONE INTENT OUT, as okay-chat routes it: the RULES first (okay-chat's `intents.json`, built by its
  * catalogue), then — for the intents read by meaning — the static table's embedding and okay's PROBE over it.
  */
-final class Router(rules: Vector[(String, js.RegExp)], probe: Probe, slots: Map[(String, String), js.RegExp]):
+final class Router(rules: Vector[(String, js.RegExp)], probe: Probe, slots: Map[(String, String), js.RegExp],
+                   helps: Vector[(String, js.Dynamic)]):
+
+  /** okay-chat's help rows — «say» — does — for `intents`, in rank order, in a language (Russian where it has none) */
+  def help(code: String, intents: Set[String]): Vector[String] =
+    helps.filter((i, _) => intents(i)).flatMap { (_, h) =>
+      val e = h.selectDynamic(code).asInstanceOf[js.UndefOr[js.Dynamic]].orElse(h.ru.asInstanceOf[js.UndefOr[js.Dynamic]])
+      e.toOption.map(x => s"• «${x.say}» — ${x.does}")
+    }
 
   /** an intent's slot, as okay-chat's slot pattern captures it (its first group) */
   def slot(intent: String, name: String, text: String): Option[String] =
@@ -47,7 +55,8 @@ object Router:
       if !js.isUndefined(sl.pattern)
     yield (i.name.asInstanceOf[String], sl.name.asInstanceOf[String]) -> Rules.compile(sl.pattern.asInstanceOf[String]))
       .toMap
-    new Router(rules, probe, slots)
+    val helps = ranked.collect { case i if !js.isUndefined(i.help) => (i.name.asInstanceOf[String], i.help) }
+    new Router(rules, probe, slots, helps)
 
   private def intents(built: String): Vector[js.Dynamic] =
     js.JSON.parse(built).intents.asInstanceOf[js.Array[js.Dynamic]].toVector

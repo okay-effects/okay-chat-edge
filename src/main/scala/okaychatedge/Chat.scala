@@ -23,6 +23,20 @@ import scala.scalajs.js.annotation.JSExportTopLevel
  *   GET  /deals/<n>                      the deal
  */
 object Chat:
+  /** the intents the edge acts on itself; the rest go to the model lane (`Lane`) */
+  val acted = Set("offer", "need", "ask_candidates", "accept", "decline", "listings", "requests", "help")
+
+  /** a need with no trade in it — «ищу работу»: which work is the question, not a search */
+  private val noTrade = Set("работу", "работа", "роботу", "робота", "pracy", "pracę", "praca", "job", "a job", "work")
+
+  private val where = Set("в", "во", "у", "на", "w", "we", "na", "in", "at", "near")
+  /** «работу», «работу во Вроцлаве», «pracy w Krakowie» — no trade; «работу программистом» names one */
+  private def tradeless(what: String): Boolean =
+    what.toLowerCase.split("[^\\p{L}]+").filter(_.nonEmpty).toList match
+      case "a" :: w :: rest => tradeless((w :: rest).mkString(" "))
+      case w :: rest => noTrade(w) && rest.headOption.forall(where)
+      case Nil => false
+
   /** the turns a conversation keeps: the last ones */
   val kept = 200
 
@@ -202,12 +216,19 @@ object Chat:
       val route = Edge.route(text)
       stateOf(id).flatMap { state =>
         // okay-chat's: the message's own language if it shows one, else what this person wrote last
-        val l = Lang.of(text).orElse(state.lang).getOrElse(Lang.default)
+        val l = Lang.answer(text, state.lang)
         val reply: Option[Said] ! Cloud = route.intent match
           case i if answers(i) => answer(id, i, text, at, l).map(t => Some(Said(t)))
+          case "need" if tradeless(Embed.what(Edge.slot("need", "what", text), text)) =>
+            unclear(text, l).map(Some(_))
           case "offer" | "need" => listed(id, route.intent, text, at, l).map(Some(_))
+          case "help" => pure(Some(Said(Phrases.help(l, Edge.help(l)))))
+          case "listings" => Market.mine(id, "offer").map(ms =>
+            Some(Said(if ms.isEmpty then Phrases.noOffers(l) else Phrases.offers(l, ms))))
+          case "requests" => Market.mine(id, "need").map(ms =>
+            Some(Said(if ms.isEmpty then Phrases.noRequests(l) else Phrases.requests(l, ms))))
           case "ask_candidates" => askShown(id, state, text, at, l).map(Some(_))
-          case _ => pure(None)
+          case _ => unclear(text, l).map(Some(_))
         reply.flatMap { said =>
           val kept = Json.Obj(Vector("text" -> Json.Str(text), "route" -> routeJson(route),
             "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
@@ -218,6 +239,12 @@ object Chat:
             (route, said, parsed(k).field("turn").getOrElse(Json.Null), l))
         }
       }
+
+    /** what the edge does not act on: the model lane, told the help and the market; else okay-chat's canned line */
+    private def unclear(text: String, l: Lang): Said ! Cloud =
+      val help = Edge.help(l)
+      Market.newest(5).flatMap(market => Lane.reply(text, l, help, market))
+        .map(r => Said(r.getOrElse(Phrases.smallTalk(l) + Phrases.help(l, help))))
 
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))

@@ -49,6 +49,21 @@ object Lang:
   private def cyrillic(c: Char): Boolean = c >= 'Ѐ' && c <= 'ԯ'
   private def latin(c: Char): Boolean = (c >= 'a' && c <= 'z') || (c >= 'À' && c <= 'ɏ')
 
+  private def isCyrillic(l: Lang): Boolean = l == Ru || l == Uk
+
+  /**
+   * the language to answer in: the message's own, else the one this person wrote last — if it is in the message's
+   * alphabet. «мои предложения» after a Polish turn is not Polish (measured live 2026-10-29): Cyrillic with no evidence
+   * is Russian, Latin with none English, unless the last language shares the alphabet.
+   */
+  def answer(text: String, last: Option[Lang]): Lang =
+    of(text).getOrElse {
+      val t = text.toLowerCase
+      if t.exists(cyrillic) then last.filter(isCyrillic).getOrElse(Ru)
+      else if t.exists(latin) then last.filterNot(isCyrillic).getOrElse(En)
+      else last.getOrElse(default)
+    }
+
   def of(text: String): Option[Lang] =
     val t = text.toLowerCase.jsReplace(amount, " ")
     val ws = t.jsSplit(nonLetters).toVector.filter(_.nonEmpty)

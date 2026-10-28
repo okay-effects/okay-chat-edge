@@ -8,7 +8,7 @@ cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
-npx wrangler dev --port "$port" --var EMBED:trigrams --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
+npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE: --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
   --var "TELEGRAM_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT
@@ -58,6 +58,7 @@ check "Polish" "$(say gus 'szukam hydraulika, potrzebuję szybko')" 'znalaz'
 check "Polish, kept" "$(say gus 'biorę 9')" 'to nie jest twoja transakcja'
 check "English" "$(say hal 'I need a plumber for my kitchen')" 'nobody yet'
 check "English, kept" "$(say hal 'take 9')" 'not your deal'
+check "Cyrillic after Polish: not Polish" "$(say gus 'мои предложения')" 'У вас пока нет предложений'
 check "a price is not a language" "$(say hal 'take 9, 40 zł')" 'not your deal'
 
 # Telegram: a webhook's update is a turn of `tg:<id>`, the reply in the webhook's answer; the other side by the bot
@@ -71,8 +72,14 @@ check "an update without the secret refused" \
 check "/start: the greeting, in four languages" "$(tgsay 101 ivan '/start')" 'Привет! Чем могу помочь?'
 check "a Telegram offer, answered in the webhook" "$(tgsay 101 ivan 'умею класть плитку в ванной, Вроцлав')" \
   '"method":"sendMessage","chat_id":"101","text":"записал предложение'
-check "not understood, no language shown: how can I help, in the default" "$(tgsay 102 jane 'hmm')" \
-  'Чем я могу вам помочь?'
+check "not understood, no model: what this is, and the help (Latin, no evidence: English)" \
+  "$(tgsay 102 jane 'hmm')" 'this is a market of supply and demand'
+check "help: okay-chat's rows, only what the edge does" "$(say help1 'помощь')" '«берусь 3»'
+case "$(say help1 'помощь')" in *резюме*) echo "FAIL help lists what the edge cannot do"; fail=1 ;; *) echo "ok   help: no résumé" ;; esac
+check "my offers" "$(say bob 'мои предложения')" 'ваши предложения:\n1) ремонтирую сантехнику'
+check "my requests, none" "$(say bob 'мои заявки')" 'У вас пока нет заявок'
+check "«ищу работу»: which work is asked, nothing searched" "$(say job1 'Ищу работу')" 'это рынок спроса'
+case "$(curl -s "$u/c/job1")" in *shown*) echo "FAIL «ищу работу» searched"; fail=1 ;; *) echo "ok   not searched" ;; esac
 check "a Telegram need finds the Telegram offer" "$(tgsay 102 jane 'нужно положить плитку в ванной')" \
   'умею класть плитку'
 tgsay 102 jane 'спроси 1' > /dev/null

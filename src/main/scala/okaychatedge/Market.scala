@@ -75,3 +75,16 @@ object Market:
           case _ => None
       }.filter(_.score >= floor(space)).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
     }
+
+  private def texts(rows: List[Map[String, SqlValue]]): Vector[String] =
+    rows.flatMap(_.get("text").collect { case SqlValue.Text(t) => t }).toVector
+
+  /** a party's own listings on a side, oldest first */
+  def mine(party: String, side: String): Vector[String] ! Cloud =
+    schema.andThen(Sql.query[Cloud](db, "select text from listings where party = ? and side = ? order by id",
+      party, side)).map(texts)
+
+  /** the newest offers on the market, anyone's */
+  def newest(n: Int): Vector[String] ! Cloud =
+    schema.andThen(Sql.query[Cloud](db, "select text from listings where side = 'offer' order by id desc limit ?", n))
+      .map(texts)

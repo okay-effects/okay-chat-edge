@@ -140,6 +140,28 @@ Whole sentences separate badly (a plumber's need 0.65 to the plumber, 0.62 to th
 Seen live: «potrzebny elektryk» answered in Russian — no Polish letter, no word okay-chat's list knows; okay-chat
 falls back to its trigram detector there, the edge to the default.
 
+## Step 8 (2026-10-29): the model lane, and more of okay-chat's answers
+
+Seen live in Telegram: everything but an offer, a need and a deal's answer got «Чем я могу вам помочь?». Now:
+`помощь` is okay-chat's help built from its intent table's rows — only the intents the edge acts on; `мои
+предложения` / `мои заявки` list the person's listings (D1); a need with no trade in it («ищу работу», «pracy w
+Krakowie») is not searched. The rest — small talk, «что ты можешь?», «что есть?», «что интересного?» — goes to the
+MODEL LANE (`Lane`): Workers AI, `LANE = "@cf/google/gemma-4-26b-a4b-it"`, told the help rows and the five newest
+offers and that it may say nothing else; a reply with a link is dropped; no model or no answer (the free plan's neurons
+spent: `entry.js` turns a model's error into `{error}`) and okay-chat's canned «это рынок спроса и предложения…» and
+the help are said instead.
+
+Measured on the account, the user's own messages: gemma-4-26b-a4b-it with its thinking off ~1.1–1.6 s and ~4 neurons
+a reply (~2300 a day free), answering in the language it is told; qwen3-30b-a3b and gemma with thinking on spent the
+whole budget thinking and said nothing; llama-3.1-8b answered but invented («два человека») and replied to Polish in
+Russian.
+
+The language with no evidence keeps to the message's alphabet: «мои предложения» after a Polish turn was answered in
+Polish (seen live) — now Cyrillic with no evidence is Russian (or the last Cyrillic language), Latin English (or the
+last Latin one). A Telegram update that fails is answered 200 and logged, not retried by Telegram for hours.
+
+`scripts/e2e.sh`: 49 checks (the lane off: `LANE=""`). The Worker 306 KB gzipped.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

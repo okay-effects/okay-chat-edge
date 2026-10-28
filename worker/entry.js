@@ -32,9 +32,26 @@ export const Conversation = objectClass("CONVERSATIONS");
 export const Deal = objectClass("DEALS");
 export const Numbers = objectClass("NUMBERS");
 
+// a model's failure is an answer, not an exception: the free plan's neurons spent, or the model down, and the Scala
+// side reads `{error}` as no answer (the lane says its canned line, an embedding finds nobody)
+const guarded = (env) => env.AI === undefined ? env : new Proxy(env, {
+  get: (target, key) => key !== "AI" ? target[key] : {
+    run: (model, input, options) => target.AI.run(model, input, options).catch((e) => ({ error: String(e) })),
+  },
+});
+
 export default {
   async fetch(request, env, ctx) {
-    await table(env);
-    return worker.fetch(request, env, ctx);
+    try {
+      await table(env);
+      return await worker.fetch(request, guarded(env), ctx);
+    } catch (e) {
+      // Telegram retries an update it got an error for, for hours: one that failed is logged and let go
+      if (new URL(request.url).pathname === "/telegram") {
+        console.error("telegram update failed", e);
+        return new Response("{}", { headers: { "content-type": "application/json" } });
+      }
+      throw e;
+    }
   },
 };
