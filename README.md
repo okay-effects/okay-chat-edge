@@ -87,11 +87,25 @@ the Worker's variable `EMBED` names — and a listing keeps its space's name, so
   in its process). Remote only: it needs a Cloudflare account (`wrangler login`), and is NOT yet run.
 
 Ranking is in the Worker (Vectorize is not on the free plan): a need reads the newest 1000 offers of its space.
-A need waits: an offer that comes later and is close to it tells its party — «по вашему запросу … появился: 1. …»,
+A need waits: an offer that comes later and is close to it tells its party — «по вашему запросу … появилось предложение: …»,
 and that conversation's «спроси 1» is the new offer.
 
 `scripts/e2e.sh`: 26 checks — the deal's, and an offer kept, a need answered with the plumber and not the English
-teacher, «спроси 5» refused, «спроси 1» asking the plumber, a need with nobody told when the electrician comes. The Worker 318 KB gzipped.
+teacher, «спроси 5» refused, «спроси 1» asking the plumber, a need with nobody told when the electrician comes.
+
+## Step 5 (2026-10-28): four languages, okay-chat's words
+
+The chat says what okay-chat says, word for word, in Russian, Ukrainian, Polish and English (`Phrases`: the offer
+stored, nobody yet, found and how to ask, which ones, asked N — no deal numbers to the seeker —, you were asked, not
+your deal, the deal bound, accepted, declined). A refusal is told to nobody but the one refusing, as in okay-chat.
+
+The language is okay-chat's `Lang` over okay's `Language.Cues` (`Lang`): the script first, then the letters one
+language owns alone and okay-chat's everyday words; an amount with its currency counts for none. No evidence — «берусь
+9» — and the reply is in what this person wrote last (a conversation keeps `lang`); a party told of a deal is told in
+its own. Every pattern a JS RegExp, as the rules are.
+
+`scripts/e2e.sh`: 33 checks — the earlier ones in okay-chat's words, and a Ukrainian, a Polish and an English person
+answered in their languages, kept for a turn with no evidence, a price not taken for Polish. The Worker 298 KB gzipped.
 
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.

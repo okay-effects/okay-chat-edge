@@ -11,7 +11,8 @@ Each step measured against the free plan's limits before the next one starts.
 4. DONE — candidates: the market in D1, a listing's subject okay-chat's `what` slot, its vector `Embed`'s (trigrams;
    bge-m3 on Workers AI with an account — not yet run), ranked in the Worker; «спроси 1 2» asks. Left: bge-m3 measured
    (separation on okay-chat's trades, as its docs/encoders.md measures). A need is told when an offer comes (done).
-5. Slots and replies: places, amounts, dates (okay-intent's pure extractors), and okay-chat's phrasings.
+5. DONE — replies: okay-chat's phrases for what the edge says, in four languages, and its language detection.
+   Left: slots — places, amounts, dates (okay-intent's pure extractors); a bare «берусь» meaning the one deal awaiting.
 6. The page: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,
    and parsing a PDF would not fit 10 ms.
 7. The optional model lane: Workers AI within its 10 000 free neurons a day, capped as okay-chat caps it, or off.

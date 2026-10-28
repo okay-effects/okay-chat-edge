@@ -46,6 +46,7 @@ object Chat:
             .andThen(Durable.put[Int, ActorStep]("count", count))
             .andThen(contact.fold(pure[Unit, ActorStep](()))(c => Durable.put[String, ActorStep]("contact", c)))
             .andThen(keep("shown", shown))
+            .andThen(keep("lang", turn.field("lang")))
             .andThen(keep("need", turn.field("need").orElse(shown.flatMap(_ => turn.field("text")))))
             .as(count)
         }
@@ -55,11 +56,11 @@ object Chat:
       case ("POST", "/") | ("POST", "/tell") => Descent.parse(request.body) match
           case Left(e) => pure(Response.text(s"a turn, as JSON: ${e.message}", 400))
           case Right(turn) => append(name, turn).map(n => Response.json(Json.obj("turn" -> Json.Num(BigDecimal(n)))))
-      case ("GET", "/shown") =>
-        Durable.step[ActorStep, InActor, (Option[Json], Option[Json])](name)(Durable.get[Json, ActorStep]("shown")
-          .flatMap(sh => Durable.get[Json, ActorStep]("need").map(n => (sh, n))))
-          .map((sh, n) => Response.json(Json.obj("shown" -> sh.getOrElse(Json.Arr(Vector.empty)),
-            "need" -> n.getOrElse(Json.Str("")))))
+      case ("GET", "/state") =>
+        Durable.step[ActorStep, InActor, Vector[(String, Option[Json])]](name)(
+          Vector("shown", "need", "lang").foldLeft(pure[Vector[(String, Option[Json])], ActorStep](Vector.empty))(
+            (acc, k) => acc.flatMap(kv => Durable.get[Json, ActorStep](k).map(v => kv :+ (k -> v)))))
+          .map(kv => Response.json(Json.Obj(kv.collect { case (k, Some(v)) => k -> v })))
       case ("GET", "/contact") =>
         Durable.step[ActorStep, InActor, Option[String]](name)(Durable.get[String, ActorStep]("contact"))
           .map(c => c.map(Response.text(_)).getOrElse(Response.text("", 404)))
@@ -79,92 +80,105 @@ object Chat:
 
   private def parsed(r: Response): Json = Descent.parse(r.body).toOption.getOrElse(Json.Null)
 
+  /** what a conversation remembers between turns: the candidates it last showed, for which need, in which language */
+  final case class State(shown: Vector[String], need: String, lang: Option[Lang])
+
+  private def stateOf(party: String): State ! Cloud =
+    Objects.call[Cloud]("CONVERSATIONS", party, Request("GET", "/state")).map(parsed).map { j =>
+      State(j.field("shown").collect { case Json.Arr(xs) => xs.collect { case Json.Str(p) => p } }
+          .getOrElse(Vector.empty),
+        j.field("need").collect { case Json.Str(t) => t }.getOrElse(""),
+        j.field("lang").collect { case Json.Str(c) => c }.flatMap(Lang.parse))
+    }
+
+  /** the language a party is told in: the one it wrote last */
+  private def langOf(party: String): Lang ! Cloud = stateOf(party).map(_.lang.getOrElse(Lang.default))
+
   /**
-   * A DEAL ANSWERED from a conversation — "берусь 3", "отказываюсь 3", "отбой 3": the transition asked of deal 3 by
-   * this party; each party told what the scenario tells it; each unlock the other party's address. The reply to the
-   * one who answered
+   * A DEAL ANSWERED from a conversation — "берусь 3", "отказываюсь 3": the transition asked of deal 3 by this party,
+   * as okay-chat answers it: on acceptance each side gets the other's address (the scenario's unlocks) and the other
+   * side is told the deal bound, in its own language; a refusal is told to nobody (okay-chat's). The reply to the one
+   * who answered. A transition the chat does not take (`withdraw`, through the API) is told as the scenario words it.
    */
-  private def answer(me: String, transition: String, text: String, at: Long): String ! Cloud =
+  private def answer(me: String, transition: String, text: String, at: Long, l: Lang): String ! Cloud =
     number.findFirstIn(text) match
-      case None => pure("назовите номер сделки")
+      case None => pure(Phrases.notYourDeal(l))
       case Some(n) =>
         Objects.call[Cloud]("DEALS", n, Request.json("POST", "/advance", Json.obj("transition" -> Json.Str(transition),
           "by" -> Json.Str(me), "at" -> Json.Num(BigDecimal(at))))).map(parsed).flatMap { j =>
-          j.field("refused").collect { case Json.Str(why) => why } match
-            case Some(why) => pure(s"сделка $n: нельзя — $why")
-            case None =>
-              val flow = j.field("flow").map(Deals.read).get
+          j.field("flow").map(Deals.read) match
+            case None => pure(Phrases.notYourDeal(l))
+            case Some(flow) =>
               val pairs = (k: String) => j.field(k).collect { case Json.Arr(xs) => xs.collect {
                 case Json.Arr(Vector(Json.Str(a), Json.Str(b))) => (a, b) } }.getOrElse(Vector.empty)
-              val told = pairs("notifies").map((role, said) =>
-                flow.parties.get(role).filter(_ != me).fold(pure[Unit, Cloud](()))(p => tell(p, s"сделка $n: $said", at)))
-              // an unlock of `contact` for a viewer: the OTHER party's address, to the viewer
-              val unlocked = pairs("unlocks").collect { case (viewer, "contact") => viewer }.flatMap { viewer =>
-                flow.parties.get(viewer).map(v => (v, flow.parties.collect { case (r, p) if r != viewer => p }.toVector))
-              }
-              val mine = unlocked.collect { case (v, others) if v == me => others }.flatten
-              val theirs = unlocked.collect { case (v, others) if v != me => (v, others) }
-              val toThem = theirs.map((v, others) => others.foldLeft(pure[Unit, Cloud](()))((p, o) =>
-                p.andThen(contactOf(o).flatMap(c => tell(v, s"сделка $n: контакт — ${c.getOrElse("не указан")}", at)))))
-              (told ++ toThem).foldLeft(pure[Unit, Cloud](()))(_.andThen(_)).andThen(
-                mine.foldLeft(pure[Vector[String], Cloud](Vector.empty))((acc, o) =>
-                  acc.flatMap(cs => contactOf(o).map(c => cs :+ c.getOrElse("не указан")))))
-                .map(cs => s"сделка $n: ${flow.state}" + (if cs.isEmpty then "" else s"; контакт — ${cs.mkString(", ")}"))
+              val others = flow.parties.values.filter(_ != me).toVector.distinct
+              // an unlock of `contact` for a viewer: the OTHER parties' addresses, to the viewer
+              val sees = pairs("unlocks").collect { case (viewer, "contact") => flow.parties.get(viewer) }.flatten.toSet
+              val contacts = (ps: Vector[String]) => ps.foldLeft(pure[Vector[String], Cloud](Vector.empty))((acc, o) =>
+                acc.flatMap(cs => contactOf(o).map(cs ++ _)))
+              val id = n.toLong
+              transition match
+                case "accept" =>
+                  others.foldLeft(pure[Unit, Cloud](()))((p, o) => p.andThen(
+                    langOf(o).flatMap(lo => (if sees(o) then contacts(Vector(me)) else pure(Vector.empty))
+                      .flatMap(mine => tell(o, Phrases.dealBound(lo, id, flow.what, mine.mkString(", ")), at)))))
+                    .andThen(if sees(me) then contacts(others) else pure(Vector.empty))
+                    .map(cs => Phrases.accepted(l, id, cs.mkString(", ")))
+                case "decline" => pure(Phrases.declined(l, id))
+                case _ =>
+                  pairs("notifies").foldLeft(pure[Unit, Cloud](()))((p, rs) => p.andThen(
+                    flow.parties.get(rs._1).filter(_ != me)
+                      .fold(pure[Unit, Cloud](()))(o => tell(o, s"$n: ${rs._2}", at))))
+                    .as(s"$n: ${flow.state}")
         }
 
   /** what a turn says besides its reply: the candidates it showed, kept by the conversation for «спроси 1 2» */
   final case class Said(reply: String, shown: Option[Vector[String]] = None)
 
-  /** an offer kept in the market; a need kept, and answered with the closest offers, numbered */
-  private def listed(me: String, side: String, text: String, at: Long): Said ! Cloud =
+  /** an offer kept in the market, and the needs already waiting for it told; a need kept, and answered with the
+   * closest offers, numbered — each in okay-chat's words, in the language of the one it is said to */
+  private def listed(me: String, side: String, text: String, at: Long, l: Lang): Said ! Cloud =
     val what = Embed.what(Edge.slot(side, "what", text), text)
     Embed.space.flatMap(space => Embed(space, what).flatMap {
-      case None => pure(Said("не понял, что именно — назовите словами"))
+      case None => pure(Said(Phrases.searchFirst(l)))
       case Some(v) =>
         Market.add(me, side, text, what, space, v, at).andThen(
           if side == "offer" then
             // the needs already waiting for it: each told, its «спроси 1» this offer
             Market.waiting(me, space, v).flatMap(ws => ws.foldLeft(pure[Unit, Cloud](()))((p, w) => p.andThen(
-              Objects.call[Cloud]("CONVERSATIONS", w.party, Request.json("POST", "/tell", Json.obj(
-                "told" -> Json.Str(s"по вашему запросу «${w.text}» появился: 1. $text\n«спроси 1» — спрошу его"),
-                "shown" -> Json.Arr(Vector(Json.Str(me))), "need" -> Json.Str(w.text),
-                "at" -> Json.Num(BigDecimal(at))))).as(()))).as(ws.size)).map { n =>
-              Said("записал, что вы предлагаете" +
-                (if n == 0 then " — приведу тех, кому это нужно" else s"; уже ищут — сообщил: $n"))
-            }
+              langOf(w.party).flatMap(lw => Objects.call[Cloud]("CONVERSATIONS", w.party, Request.json("POST", "/tell",
+                Json.obj("told" -> Json.Str(Phrases.appeared(lw, text, w.text)),
+                  "shown" -> Json.Arr(Vector(Json.Str(me))), "need" -> Json.Str(w.text),
+                  "at" -> Json.Num(BigDecimal(at))))).as(())))))
+              .as(Said(Phrases.storedOffer(l, what)))
           else Market.candidates(me, space, v).map { cs =>
-            if cs.isEmpty then Said("записал, что вам нужно; пока никого — сообщу", Some(Vector.empty))
-            else Said(cs.zipWithIndex.map((c, i) => s"${i + 1}. ${c.text}").mkString("нашёл:\n", "\n",
-              "\n«спроси 1» — спрошу его; «спроси всех» — всех"), Some(cs.map(_.party).toVector))
+            if cs.isEmpty then Said(Phrases.nobodyYet(l), Some(Vector.empty))
+            else Said(Phrases.found(l, cs.size, cs.zipWithIndex.map((c, i) => s"${i + 1}. ${c.text}").mkString("\n")),
+              Some(cs.map(_.party).toVector))
           })
     })
 
   private val all = """(?iu)(?:^|\s)(всех|все|усіх|всіх|wszystkich|all)(?:\s|$)""".r
 
   /** «спроси 1 2», «спроси всех»: the conversation's last shown candidates asked — a deal each, for its last need */
-  private def askShown(me: String, text: String, at: Long): Said ! Cloud =
-    Objects.call[Cloud]("CONVERSATIONS", me, Request("GET", "/shown")).map(parsed).flatMap { j =>
-      val shown = j.field("shown").collect { case Json.Arr(xs) => xs.collect { case Json.Str(p) => p } }
-        .getOrElse(Vector.empty)
-      val need = j.field("need").collect { case Json.Str(t) => t }.getOrElse("")
-      val picked =
-        if all.findFirstIn(text).isDefined then shown
-        else number.findAllIn(text).map(_.toInt).toVector.distinct.flatMap(i => shown.lift(i - 1))
-      if shown.isEmpty then pure(Said("сначала скажите, что вам нужно — покажу, кто есть"))
-      else if picked.isEmpty then pure(Said(s"кого спросить? номера от 1 до ${shown.size}, или «спроси всех»"))
-      else picked.foldLeft(pure[Vector[Long], Cloud](Vector.empty))((acc, p) =>
-        acc.flatMap(ns => ask(me, p, need, at).map(ns :+ _)))
-        .map(ns => Said(s"спросил: ${ns.map(n => s"сделка $n").mkString(", ")} — сообщу, кто возьмётся"))
-    }
+  private def askShown(me: String, state: State, text: String, at: Long, l: Lang): Said ! Cloud =
+    val picked =
+      if all.findFirstIn(text).isDefined then state.shown
+      else number.findAllIn(text).map(_.toInt).toVector.distinct.flatMap(i => state.shown.lift(i - 1))
+    if state.shown.isEmpty then pure(Said(Phrases.searchFirst(l)))
+    else if picked.isEmpty then pure(Said(Phrases.whichOnes(l)))
+    else picked.foldLeft(pure[Vector[Long], Cloud](Vector.empty))((acc, p) =>
+      acc.flatMap(ns => ask(me, p, state.need, at).map(ns :+ _)))
+      .map(ns => Said(Phrases.asked(l, ns.size, ns.size)))
 
-  /** a deal asked: its number from `Numbers`, the deal made, the provider told how to answer, the seeker told */
+  /** a deal asked: its number from `Numbers`, the deal made, the provider told how to answer — in its language (the
+   * seeker is answered by the caller: deal numbers are not the seeker's to know) */
   private def ask(seeker: String, provider: String, what: String, at: Long): Long ! Cloud =
     Objects.call[Cloud]("NUMBERS", "deals", Request("POST", "/")).map(_.body.trim.toLong).flatMap { n =>
       Objects.call[Cloud]("DEALS", n.toString, Request.json("POST", "/create", Json.obj("scenario" -> Json.Str("deal"),
         "parties" -> Json.obj("seeker" -> Json.Str(seeker), "provider" -> Json.Str(provider)),
         "what" -> Json.Str(what))))
-        .andThen(tell(provider, s"вас спросили, сделка $n: $what — ответьте «берусь $n» или «отказываюсь $n»", at))
-        .andThen(tell(seeker, s"спросил, сделка $n: $what — сообщу, когда ответят", at)).as(n)
+        .andThen(langOf(provider).flatMap(lp => tell(provider, Phrases.youWereAsked(lp, n, what), at))).as(n)
     }
 
   /** THE WORKER: a message routed here, its turn kept by its conversation, a deal's answer carried */
@@ -177,15 +191,18 @@ object Chat:
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))
       case ("POST", List("", "c", id)) =>
         val route = Edge.route(r.body)
-        Clock.now[Cloud].flatMap { at =>
+        Clock.now[Cloud].flatMap(at => stateOf(id).flatMap { state =>
+          // okay-chat's: the message's own language if it shows one, else what this person wrote last
+          val l = Lang.of(r.body).orElse(state.lang).getOrElse(Lang.default)
           val reply: Option[Said] ! Cloud = route.intent match
-            case i if answers(i) => answer(id, i, r.body, at).map(t => Some(Said(t)))
-            case "offer" | "need" => listed(id, route.intent, r.body, at).map(Some(_))
-            case "ask_candidates" => askShown(id, r.body, at).map(Some(_))
+            case i if answers(i) => answer(id, i, r.body, at, l).map(t => Some(Said(t)))
+            case "offer" | "need" => listed(id, route.intent, r.body, at, l).map(Some(_))
+            case "ask_candidates" => askShown(id, state, r.body, at, l).map(Some(_))
             case _ => pure(None)
           reply.flatMap { said =>
             val turn = Json.Obj(Vector("text" -> Json.Str(r.body), "route" -> routeJson(route),
-              "at" -> Json.Num(BigDecimal(at))) ++ said.map(s => "reply" -> Json.Str(s.reply)) ++
+              "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
+              said.map(s => "reply" -> Json.Str(s.reply)) ++
               said.flatMap(_.shown).map(sh => "shown" -> Json.Arr(sh.map(Json.Str(_)))) ++
               email.findFirstIn(r.body).map("contact" -> Json.Str(_)))
             Objects.call[Cloud]("CONVERSATIONS", id, Request.json("POST", "/", turn)).map(kept =>
@@ -193,19 +210,22 @@ object Chat:
                 "turn" -> parsed(kept).field("turn").getOrElse(Json.Null)) ++
                 said.map(s => "reply" -> Json.Str(s.reply)))))
           }
-        }
+        })
       case ("GET", List("", "c", id)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))
       case ("POST", List("", "deals")) => Descent.parse(r.body).toOption match
           case None => pure(Response.text("{seeker, provider, what}", 400))
           case Some(j) =>
             (Deals.text(j, "seeker"), Deals.text(j, "provider"), Deals.text(j, "what")) match
-              case (Some(s), Some(p), Some(w)) => Clock.now[Cloud].flatMap(at => ask(s, p, w, at))
+              case (Some(s), Some(p), Some(w)) => Clock.now[Cloud].flatMap(at => ask(s, p, w, at)
+                  .flatMap(n => langOf(s).flatMap(ls => tell(s, Phrases.asked(ls, 1, 1), at)).as(n)))
                   .map(n => Response.json(Json.obj("deal" -> Json.Num(BigDecimal(n)))))
               case _ => pure(Response.text("{seeker, provider, what}", 400))
       case ("GET", List("", "deals", n)) => Objects.call[Cloud]("DEALS", n, Request("GET", "/"))
-      case ("POST", List("", "deals", n, transition)) => Descent.parse(r.body).toOption.flatMap(Deals.text(_, "by")) match
+      case ("POST", List("", "deals", n, transition)) =>
+        Descent.parse(r.body).toOption.flatMap(Deals.text(_, "by")) match
           case None => pure(Response.text("{by}", 400))
-          case Some(by) => Clock.now[Cloud].flatMap(at => answer(by, transition, n, at)).map(Response.text(_))
+          case Some(by) => Clock.now[Cloud].flatMap(at => langOf(by).flatMap(l => answer(by, transition, n, at, l)))
+            .map(Response.text(_))
       case _ => pure(Response.text("POST /route, POST /c/<id>, GET /c/<id>, POST /deals, GET /deals/<n>", 404))
 
   @JSExportTopLevel("worker")

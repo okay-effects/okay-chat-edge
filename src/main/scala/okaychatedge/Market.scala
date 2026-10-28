@@ -64,7 +64,8 @@ object Market:
   /** the others' offers closest to a need, the best of each party, best first */
   def candidates(me: String, space: String, need: Float32Array, k: Int = 3): List[Candidate] ! Cloud =
     schema.andThen(Sql.query[Cloud](db,
-      "select party, text, vec from listings where side = 'offer' and space = ? and party <> ? order by id desc limit ?",
+      "select party, text, vec from listings where side = 'offer' and space = ? and party <> ? " +
+        "order by id desc limit ?",
       space, me, window)).map { rows =>
       rows.flatMap { r =>
         (r.get("party"), r.get("text"), r.get("vec")) match
