@@ -5,8 +5,9 @@ Each step measured against the free plan's limits before the next one starts.
 1. DONE — the router: rules, the static table, the probe; CPU, start and size measured (README.md).
 2. DONE — a conversation: a Durable Object for each (SQLite storage), its turns durable, on okay-serverless; the table
    in KV. Left for the page: a WebSocket with hibernation (the object then routes too: the table from KV in it).
-3. The deal: okay-chat's state machine (pure data) ported — what of okay-match is pure, cross-built; its storage the
-   object's SQLite, the marketplace's shared data D1.
+3. DONE — the deal: okay-match's scenario engine ported, a deal an object (a transition a step), global numbers,
+   «берусь N» / «отказываюсь N» from a conversation, notices and unlocked addresses written into the parties'
+   conversations. A party is a conversation until profiles (with the shared marketplace data in D1).
 4. Candidates: ranked by the same table's vectors in the Worker (no Vectorize: not on the free plan).
 5. Slots and replies: places, amounts, dates (okay-intent's pure extractors), and okay-chat's phrasings.
 6. The page: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,

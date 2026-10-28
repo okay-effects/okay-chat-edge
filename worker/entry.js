@@ -20,12 +20,17 @@ const table = async (env) => {
   await loading;
 };
 
-export class Conversation extends DurableObject {
-  fetch(request) { return worker.objectFetch("CONVERSATIONS", this.ctx, this.env, request); }
-  alarm() { return worker.objectAlarm("CONVERSATIONS", this.ctx, this.env); }
-  webSocketMessage(ws, message) { return worker.objectMessage("CONVERSATIONS", this.ctx, this.env, ws, message); }
-  webSocketClose(ws) { return worker.objectClose("CONVERSATIONS", this.ctx, this.env, ws); }
-}
+// each Durable Object class hands its calls to the Scala worker, under its namespace's binding
+const objectClass = (ns) => class extends DurableObject {
+  fetch(request) { return worker.objectFetch(ns, this.ctx, this.env, request); }
+  alarm() { return worker.objectAlarm(ns, this.ctx, this.env); }
+  webSocketMessage(ws, message) { return worker.objectMessage(ns, this.ctx, this.env, ws, message); }
+  webSocketClose(ws) { return worker.objectClose(ns, this.ctx, this.env, ws); }
+};
+
+export const Conversation = objectClass("CONVERSATIONS");
+export const Deal = objectClass("DEALS");
+export const Numbers = objectClass("NUMBERS");
 
 export default {
   async fetch(request, env, ctx) {

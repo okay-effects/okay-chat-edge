@@ -50,6 +50,25 @@ request and kept; the rules and the probe stay modules, warmed at the start.
 
 Checked in `wrangler dev` (workerd): two conversations apart, each turn numbered, the turns read back.
 
+## Step 3 (2026-10-28): the deal
+
+okay-match's scenarios as data, ported as they are (`deal/Scenario.scala`): the deal is its built-in definition —
+asked, then accepted or declined by the provider, or withdrawn by the seeker; accepting unlocks both sides' contacts
+and tells the seeker. Each deal is a Durable Object under its number (`deal/Deals`): a transition is one step of its
+durable state, so two answers to one deal cannot both win. Numbers are global, as okay-chat's are (`Numbers`, one
+object, a counter). In a conversation okay-chat's own words answer a deal — «берусь 3», «отказываюсь 3», recognised by
+its rules; what a deal tells a party is written into that party's conversation, and an unlock is the other party's
+address, which a conversation keeps from any message that gives one.
+
+    POST /deals {seeker, provider, what}   a deal asked (until the edge finds candidates) → its number
+    GET  /deals/<n>                        the deal
+    POST /deals/<n>/<transition> {by}      a transition asked by a party (`withdraw`: the seeker's)
+
+`scripts/e2e.sh` (wrangler dev): 15 checks — two people, an address noticed, a deal asked and the provider told how to
+answer, the seeker refused her own ask, the provider accepting and each side given the other's address, an accepted
+deal not declined after, a withdrawal by its seeker only, and two answers at once of which exactly one wins. The Worker
+306 KB gzipped.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

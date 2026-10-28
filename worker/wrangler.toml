@@ -10,11 +10,23 @@ rules = [{ type = "Text", globs = ["**/*.json.txt"], fallthrough = false }]
 binding = "TABLE"
 id = "okay-chat-edge-table"
 
-# a conversation an object, its storage SQLite (the free plan's kind)
+# a conversation an object, a deal an object, the deals' numbers an object — SQLite under each (the free plan's kind)
 [[durable_objects.bindings]]
 name = "CONVERSATIONS"
 class_name = "Conversation"
 
+[[durable_objects.bindings]]
+name = "DEALS"
+class_name = "Deal"
+
+[[durable_objects.bindings]]
+name = "NUMBERS"
+class_name = "Numbers"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Conversation"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Deal", "Numbers"]
