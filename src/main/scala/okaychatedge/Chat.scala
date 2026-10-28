@@ -45,7 +45,8 @@ object Chat:
           Durable.put[List[Json], ActorStep]("turns", (ts.getOrElse(Nil) :+ turn).takeRight(kept))
             .andThen(Durable.put[Int, ActorStep]("count", count))
             .andThen(contact.fold(pure[Unit, ActorStep](()))(c => Durable.put[String, ActorStep]("contact", c)))
-            .andThen(keep("shown", shown)).andThen(keep("need", shown.flatMap(_ => turn.field("text"))))
+            .andThen(keep("shown", shown))
+            .andThen(keep("need", turn.field("need").orElse(shown.flatMap(_ => turn.field("text")))))
             .as(count)
         }
       })
@@ -121,7 +122,16 @@ object Chat:
       case None => pure(Said("не понял, что именно — назовите словами"))
       case Some(v) =>
         Market.add(me, side, text, what, space, v, at).andThen(
-          if side == "offer" then pure(Said("записал, что вы предлагаете — приведу тех, кому это нужно"))
+          if side == "offer" then
+            // the needs already waiting for it: each told, its «спроси 1» this offer
+            Market.waiting(me, space, v).flatMap(ws => ws.foldLeft(pure[Unit, Cloud](()))((p, w) => p.andThen(
+              Objects.call[Cloud]("CONVERSATIONS", w.party, Request.json("POST", "/tell", Json.obj(
+                "told" -> Json.Str(s"по вашему запросу «${w.text}» появился: 1. $text\n«спроси 1» — спрошу его"),
+                "shown" -> Json.Arr(Vector(Json.Str(me))), "need" -> Json.Str(w.text),
+                "at" -> Json.Num(BigDecimal(at))))).as(()))).as(ws.size)).map { n =>
+              Said("записал, что вы предлагаете" +
+                (if n == 0 then " — приведу тех, кому это нужно" else s"; уже ищут — сообщил: $n"))
+            }
           else Market.candidates(me, space, v).map { cs =>
             if cs.isEmpty then Said("записал, что вам нужно; пока никого — сообщу", Some(Vector.empty))
             else Said(cs.zipWithIndex.map((c, i) => s"${i + 1}. ${c.text}").mkString("нашёл:\n", "\n",

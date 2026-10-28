@@ -39,11 +39,18 @@ check "a deal asked directly" "$deal2" '"deal":2'
 check "the provider cannot withdraw it" "$(curl -s -X POST --data '{"by":"bob"}' "$u/deals/2/withdraw")" 'нельзя'
 check "the seeker withdraws it" "$(curl -s -X POST --data '{"by":"ann"}' "$u/deals/2/withdraw")" 'withdrawn'
 check "the provider told" "$(curl -s "$u/c/bob")" 'отбой по заказу: ещё одна работа'
+# a need kept, and told when an offer for it comes
+check "a need with nobody yet" "$(say dan 'нужен электрик, Краков')" 'пока никого'
+check "the offer that answers it: the waiting told" "$(say eve 'занимаюсь электромонтажом, eve@example.com')" 'сообщил: 1'
+check "the need told of the offer" "$(curl -s "$u/c/dan")" 'появился: 1. занимаюсь электромонтажом'
+check "and its «спроси 1» asks it" "$(say dan 'спроси 1')" 'спросил: сделка 3'
+check "the new provider told" "$(curl -s "$u/c/eve")" 'вас спросили, сделка 3: нужен электрик, Краков'
+
 # two answers to one deal at once: the object takes them one at a time — exactly one wins
 curl -s -X POST --data '{"seeker":"ann","provider":"bob","what":"спорная работа"}' "$u/deals" > /dev/null
-say bob 'берусь 3' > /tmp/okay-chat-edge-a & a=$!
-say bob 'отказываюсь 3' > /tmp/okay-chat-edge-b & b=$!
+say bob 'берусь 4' > /tmp/okay-chat-edge-a & a=$!
+say bob 'отказываюсь 4' > /tmp/okay-chat-edge-b & b=$!
 wait $a $b
-wins=$(cat /tmp/okay-chat-edge-a /tmp/okay-chat-edge-b | grep -c 'сделка 3: \(accepted\|declined\)' || true)
+wins=$(cat /tmp/okay-chat-edge-a /tmp/okay-chat-edge-b | grep -c 'сделка 4: \(accepted\|declined\)' || true)
 check "two answers at once: exactly one wins" "wins=$wins" "wins=1"
 exit $fail

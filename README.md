@@ -87,8 +87,11 @@ the Worker's variable `EMBED` names — and a listing keeps its space's name, so
   in its process). Remote only: it needs a Cloudflare account (`wrangler login`), and is NOT yet run.
 
 Ranking is in the Worker (Vectorize is not on the free plan): a need reads the newest 1000 offers of its space.
-`scripts/e2e.sh`: 21 checks — the deal's, and an offer kept, a need answered with the plumber and not the English
-teacher, «спроси 5» refused, «спроси 1» asking the plumber. The Worker 318 KB gzipped.
+A need waits: an offer that comes later and is close to it tells its party — «по вашему запросу … появился: 1. …»,
+and that conversation's «спроси 1» is the new offer.
+
+`scripts/e2e.sh`: 26 checks — the deal's, and an offer kept, a need answered with the plumber and not the English
+teacher, «спроси 5» refused, «спроси 1» asking the plumber, a need with nobody told when the electrician comes. The Worker 318 KB gzipped.
 
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.

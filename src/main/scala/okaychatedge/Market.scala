@@ -45,6 +45,22 @@ object Market:
       "insert into listings (party, side, text, what, space, vec, at) values (?, ?, ?, ?, ?, ?, ?)",
       party, side, text, what, space, quantised(v), at)).as(())
 
+  /** a need a new offer answers: whose, the need's words */
+  final case class Waiting(party: String, text: String, score: Double)
+
+  /** the others' needs a new offer is close to — the newest `window`, the best of each party, at most `k` */
+  def waiting(me: String, space: String, offer: Float32Array, k: Int = 20): List[Waiting] ! Cloud =
+    schema.andThen(Sql.query[Cloud](db,
+      "select party, text, vec from listings where side = 'need' and space = ? and party <> ? order by id desc limit ?",
+      space, me, window)).map { rows =>
+      rows.flatMap { r =>
+        (r.get("party"), r.get("text"), r.get("vec")) match
+          case (Some(SqlValue.Text(p)), Some(SqlValue.Text(t)), Some(SqlValue.Blob(b))) =>
+            Some(Waiting(p, t, cosine(offer, b.toArray)))
+          case _ => None
+      }.filter(_.score >= floor).groupBy(_.party).values.map(_.maxBy(_.score)).toList.sortBy(-_.score).take(k)
+    }
+
   /** the others' offers closest to a need, the best of each party, best first */
   def candidates(me: String, space: String, need: Float32Array, k: Int = 3): List[Candidate] ! Cloud =
     schema.andThen(Sql.query[Cloud](db,
