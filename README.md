@@ -192,6 +192,24 @@ THE OPEN API CLOSED to what is not a page's: `/c/<id>` takes `web:<32 hex>` only
 number anyone could try — it was readable and writable by anyone), other ids only with `OPEN_API` set (tests);
 `/deals` only with `OPEN_API`. `scripts/e2e.sh`: 52 checks.
 
+## Step 11 (2026-10-29): the page's socket
+
+The page no longer reads the conversation every 20 s: it opens one WebSocket to its conversation's object
+(`/c/<id>/socket`), accepted there by `Sockets.accept` — Cloudflare's hibernation API, so an idle page costs the
+object nothing — and each turn the object keeps (a reply, and what another party tells this one) is pushed to it as
+`{n, turn}`. By the number the page adds the next turn, leaves one it has, and reads the conversation once on a gap;
+lost, the socket is opened again (1 s doubling to 30 s, at once when the page comes back into view) and the
+conversation read once. What comes while the program is not listening (sending, a screen being drawn) waits in the
+handler for the next listener.
+
+The socket is passed through `entry.js` (`/c/web:<32 hex>/socket` only): okay-serverless' `Objects.call` answers with
+a plain response, and the 101's socket end would be lost on the way.
+
+Measured in Chromium, locally and live, two pages: each made one read, one socket, one POST a message — the other
+side's «Вас спрашивают…» and «…согласились взяться» came by themselves, and 25 s of quiet made no request (the old
+page: one every 20 s). A server restarted under an open page: the socket closed, opened again in a second, one read,
+the next reply by the new socket. `scripts/e2e.sh`: 55 checks (a socket's push, `scripts/socket-check.mjs`).
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

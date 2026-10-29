@@ -5,6 +5,7 @@ import okay.http.{Request, Response}
 import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
+import okay.serverless.cloud.Sockets
 import okay.serverless.cloudflare.Worker
 import okay.serverless.{Durable, field}
 import okaychatedge.deal.{Deals, Numbers}
@@ -78,10 +79,28 @@ object Chat:
         said("text", t).map("user" -> _).toVector ++ said("reply", t).orElse(said("told", t)).map("assistant" -> _))
         .takeRight(Lane.turns).map((r, s) => Json.Arr(Vector(Json.Str(r), Json.Str(s))))
 
+    /** a turn as a page shows it: what was written, what was said — nothing of the routing, no address */
+    private def shownTurn(t: Json): Json =
+      Json.Obj(Vector("text", "reply", "told").flatMap(k => t.field(k).collect { case s: Json.Str => k -> s }))
+
+    /** A PAGE'S SOCKET (a WebSocket the object holds — hibernating: an idle page costs nothing): each turn appended is
+     * sent to the pages open on this conversation as it is kept, `{n, turn}` — `n` its number, by which a page
+     * knows it missed one and reads the conversation again */
+    private def told(n: Int, turn: Json): Int ! InActor =
+      Sockets.broadcast[InActor](Json.print(Json.obj("n" -> Json.Num(BigDecimal(n)), "turn" -> shownTurn(turn))),
+        Some("page")).as(n)
+
     def fetch(name: String, request: Request): Response ! InActor = (request.method, request.path) match
       case ("POST", "/") | ("POST", "/tell") => Descent.parse(request.body) match
           case Left(e) => pure(Response.text(s"a turn, as JSON: ${e.message}", 400))
-          case Right(turn) => append(name, turn).map(n => Response.json(Json.obj("turn" -> Json.Num(BigDecimal(n)))))
+          case Right(turn) => append(name, turn).flatMap(told(_, turn))
+              .map(n => Response.json(Json.obj("turn" -> Json.Num(BigDecimal(n)))))
+      case ("GET", "/socket") => Sockets.accept[InActor](request, "page")
+      case ("GET", "/page") =>
+        Durable.step[ActorStep, InActor, (Int, List[Json])](name)(Durable.get[Int, ActorStep]("count").flatMap(n =>
+          Durable.get[List[Json], ActorStep]("turns").map(ts => (n.getOrElse(0), ts.getOrElse(Nil)))))
+          .map((n, ts) => Response.json(Json.obj("count" -> Json.Num(BigDecimal(n)),
+            "turns" -> Json.Arr(ts.toVector.map(shownTurn)))))
       case ("GET", "/state") =>
         Durable.step[ActorStep, InActor, Vector[(String, Option[Json])]](name)(
           Vector("shown", "need", "lang").foldLeft(pure[Vector[(String, Option[Json])], ActorStep](Vector.empty))(
@@ -288,6 +307,8 @@ object Chat:
           Response.json(Json.Obj(Vector("route" -> routeJson(route), "turn" -> n) ++
             said.map(s => "reply" -> Json.Str(s.reply)))))
       case ("GET", List("", "c", _)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))
+      // the page's reading: the turns as shown, and how many there have been
+      case ("GET", List("", "c", _, "page")) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/page"))
       case _ => pure(Response.text("POST /c/<id>, GET /c/<id>", 404))
 
     private def deals(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match

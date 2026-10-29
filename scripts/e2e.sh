@@ -70,6 +70,12 @@ tgsay() { # user id, username, text
 check "a Telegram conversation is not the API's to read" \
   "$(curl -s -o /dev/null -w '%{http_code}' "$u/c/tg:101")" '403'
 check "…nor to speak in" "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'берусь 1' "$u/c/tg:101")" '403'
+pageid="web:$(openssl rand -hex 16)"
+check "a page's socket: its turn pushed as it is kept" "$(node "$here/scripts/socket-check.mjs" "$u" "$pageid" 2>&1)" \
+  '{"n":1,"turn":{"text":"помощь","reply":"Вот всё, что я умею.'
+check "…and read as the page reads it" "$(curl -s "$u/c/$pageid/page")" '"count":1'
+check "no socket to a conversation not a page's" \
+  "$(curl -s -o /dev/null -w '%{http_code}' -H 'upgrade: websocket' "$u/c/tg:101/socket")" '403'
 check "the page is served" "$(curl -s "$u/")" '<script type="module" src="/page.js">'
 check "an update without the secret refused" \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' "$u/telegram")" '403'

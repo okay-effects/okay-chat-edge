@@ -14,8 +14,8 @@ Each step measured against the free plan's limits before the next one starts.
 5. DONE — replies: okay-chat's phrases for what the edge says, in four languages, and its language detection.
    Left: slots — places, amounts, dates (okay-intent's pure extractors); a bare «берусь» meaning the one deal awaiting.
 5a. DONE — Telegram: a webhook door to the conversations, the other side told by the bot (`scripts/deploy.sh`).
-6. DONE (the chat) — the page: okay-ui on okay-faces' DOM face, polling; left: WebSocket (hibernation) instead of
-   polling, a résumé's PDF read in the browser. Was: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,
+6. DONE (the chat) — the page: okay-ui on okay-faces' DOM face, polling; the WebSocket (hibernation) done; left: a résumé's PDF
+   read in the browser. Was: Scala.js, okay-faces; a résumé's PDF read IN THE BROWSER (pdf.js), its text sent — pdfbox is the JVM's,
    and parsing a PDF would not fit 10 ms.
 7. DONE — the model lane: Workers AI (gemma-4-26b-a4b-it), within the 10 000 free neurons a day (~2300 replies);
    what the edge does not act on. Left: a per-day cap of our own (okay-chat's), the conversation's last turns as
