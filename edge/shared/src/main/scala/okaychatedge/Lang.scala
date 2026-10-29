@@ -1,7 +1,5 @@
 package okaychatedge
 
-import scala.scalajs.js
-import scala.scalajs.js.JSStringOps.*
 
 /**
  * WHICH LANGUAGE TO ANSWER IN — okay-chat's `Lang` over okay's `Language.Cues`, ported: the message's script first
@@ -40,11 +38,11 @@ object Lang:
 
   // okay-chat's amount (`(?iU)`, `\w` a letter in any script), as a JS RegExp: a price is not a language
   private val w = "[\\p{L}\\p{N}_]"
-  private val amount = new js.RegExp(
+  private val amount = Re(
     s"\\d[\\d\\s.,]*\\s*(?:zł|zl|pln|złot$w*|злот$w*|зл|€|eur|евро|євро|\\$$|usd|доллар$w*|долар$w*|dolar$w*|" +
       s"₴|uah|грн|гривн?$w*|₽|rub|руб$w*|рубл$w*|kč|czk|£|gbp|фунт$w*)|" +
       "(?:zł|zl|pln|€|eur|\\$|usd|₴|uah|грн|₽|rub|kč|czk|£|gbp)\\s*\\d[\\d\\s.,]*", "giu")
-  private val nonLetters = new js.RegExp("[^\\p{L}]+", "u")
+  private val nonLetters = Re("[^\\p{L}]+", "u")
 
   private def cyrillic(c: Char): Boolean = c >= 'Ѐ' && c <= 'ԯ'
   private def latin(c: Char): Boolean = (c >= 'a' && c <= 'z') || (c >= 'À' && c <= 'ɏ')
@@ -65,8 +63,8 @@ object Lang:
     }
 
   def of(text: String): Option[Lang] =
-    val t = text.toLowerCase.jsReplace(amount, " ")
-    val ws = t.jsSplit(nonLetters).toVector.filter(_.nonEmpty)
+    val t = amount.replaceAll(text.toLowerCase, " ")
+    val ws = nonLetters.split(t).filter(_.nonEmpty)
     val candidates =
       if t.exists(cyrillic) then Vector(Ru, Uk)
       else if t.exists(latin) then Vector(Pl, En)

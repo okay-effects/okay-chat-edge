@@ -2,7 +2,6 @@ package okaychatedge
 
 import okay.scala3.*
 import okay.serverless.cloud.*
-import scala.scalajs.js
 
 /**
  * SEARCHES REMEMBERED — «запомни» after a vacancy search: the search kept (D1, at most five a person), and each new
@@ -46,9 +45,7 @@ object Asks:
   def forget(party: String): Int ! Cloud =
     schema.andThen(Sql.run[Cloud](db, "delete from job_asks where party = ?", party)).map(_.changes.toInt)
 
-  private def folded(s: String): String =
-    s.asInstanceOf[js.Dynamic].normalize("NFD").asInstanceOf[String].toLowerCase
-      .filterNot(c => Character.getType(c) == Character.NON_SPACING_MARK)
+  private def folded(s: String): String = Text.fold(s)
 
   /** whether a vacancy answers a search: each of its words starts a word of the title, its place is in the place */
   def answers(a: JobAsk, k: Kept): Boolean =

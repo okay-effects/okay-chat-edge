@@ -1,7 +1,5 @@
 package okaychatedge
 
-import scala.scalajs.js
-
 /**
  * okay-chat's RULES AS NATIVE REGEXES. They are Java's, `(?iU)`: case-insensitive, and `\w`, `\s`, `\d`, `\b` by
  * Unicode. Scala.js's `java.util.regex` gives exactly that, but builds each `\w` into a class of all of Unicode at
@@ -25,10 +23,10 @@ object Rules:
   private val B = s"(?:(?<=[$W])(?![$W])|(?<![$W])(?=[$W]))"
 
   /** a Java `(?iU)` rule as a JavaScript regex */
-  def compile(java: String): js.RegExp =
+  def compile(java: String): Re =
     val head = "(?iU)"
     require(java.startsWith(head), s"a rule without $head: $java")
-    new js.RegExp(translate(java.drop(head.length)), "iu")
+    Re(translate(java.drop(head.length)), "iu")
 
   def translate(src: String): String =
     val out = new StringBuilder

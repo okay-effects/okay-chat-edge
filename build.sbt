@@ -1,4 +1,5 @@
-// okay-chat-edge: okay-chat's chat on Cloudflare Workers' free plan — Scala 3 on Scala.js, no model on the path
+// okay-chat-edge: okay-chat's chat on Cloudflare Workers' free plan — Scala 3 on Scala.js, no model on the path; the
+// same chat on the JVM, on a server of one's own, when Cloudflare is not there (edge/jvm, `sbt edgeJVM/run`)
 import org.scalajs.linker.interface.{ESVersion, ModuleKind}
 
 ThisBuild / scalaVersion := "3.3.8"
@@ -10,22 +11,37 @@ ThisBuild / resolvers ++= Seq(
   "okay-faces" at "https://okay-effects.github.io/okay-faces/maven",
   "okay-store" at "https://okay-effects.github.io/okay-store/maven")
 
-lazy val edge = (project in file("."))
-  .enablePlugins(ScalaJSPlugin)
+/**
+ * THE CHAT, ONCE, on two platforms (specs: the host): JavaScript for Cloudflare — the main home, a Worker and its
+ * Durable Objects — and the JVM for a server of one's own, the fallback (okay-serverless' host: one process, one
+ * directory). Its logic is shared; each platform gives its regexes, JSON, text and the static table's bytes.
+ */
+lazy val edge = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full).in(file("edge"))
   .settings(
     name := "okay-chat-edge",
-    // the cloud as effects: a Worker, its Durable Objects, durable state without replay (okay-serverless)
-    libraryDependencies += "io.github.okay-effects" %%% "okay-serverless-cloudflare" % "0.1.0",
     scalacOptions ++= Seq("-deprecation", "-feature"),
+  )
+  .jsSettings(
+    // the cloud as effects: a Worker, its Durable Objects, durable state without replay (okay-serverless)
+    libraryDependencies += "io.github.okay-effects" %%% "okay-serverless-cloudflare" % serverless,
     // an ES module for wrangler; ES2018 for the regexes' \p{L} and lookbehind (the rules are Unicode)
     scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule)
       .withESFeatures(_.withESVersion(ESVersion.ES2018))),
   )
+  .jvmSettings(
+    // the same effects on one's own server: SQLite, the JDK's HTTP, a model server of OpenAI's API
+    libraryDependencies += "io.github.okay-effects" %% "okay-serverless-host" % serverless,
+    Compile / mainClass := Some("okaychatedge.Serve"),
+    run / fork := true,
+    run / baseDirectory := (ThisBuild / baseDirectory).value,
+  )
+
+val serverless = "0.1.1-SNAPSHOT"
 
 /** what runs at build time — the probe's fit, the measures — linked into bench/tools.js, never into the Worker */
 lazy val tools = (project in file("tools"))
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(edge)
+  .dependsOn(edge.js)
   .settings(
     name := "okay-chat-edge-tools",
     scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule)
@@ -44,8 +60,8 @@ toolsJs := {
 /** the Worker's code, linked (full optimisation) into worker/okay.js */
 val worker = taskKey[File]("the Worker's code, linked")
 worker := {
-  val out = (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value
-  val _ = (Compile / fullLinkJS).value
+  val out = (edge.js / Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value
+  val _ = (edge.js / Compile / fullLinkJS).value
   val to = baseDirectory.value / "worker" / "okay.js"
   IO.copyFile(out / "main.js", to)
   to

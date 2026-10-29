@@ -1,40 +1,32 @@
 package okaychatedge
 
-import scala.scalajs.js
-import scala.scalajs.js.annotation.*
-import scala.scalajs.js.typedarray.*
-
 /**
- * THE ROUTER IN AN ISOLATE: its rules and probe from the Worker's own modules at the isolate's start, warmed there; the
- * static table from KV on the first request (an isolate's start may not read KV), kept while the isolate lives.
+ * THE ROUTER, ONE A PROCESS: its rules and probe at the start, warmed there; the static table loaded once. In a Worker
+ * the rules and probe are the Worker's own modules and the table comes from KV on the first request (an isolate's
+ * start may not read KV) — `EdgeJs` exports it to entry.js; on the host they are files read at the start.
  */
-@JSExportTopLevel("edge")
 object Edge:
   private var router: Router = null
   private var table: StaticTable = null
 
-  /** at the isolate's start: okay-chat's built intents (the rules) and the probe's weights (JSON, from `fit`) */
   /** okay-chat's employers' boards (its job-sources.json), imported by the cron (`Boards`) */
   var boards: Vector[Board] = Vector.empty
 
-  @JSExport
-  def init(built: String, probe: String, sources: js.UndefOr[String] = js.undefined): Unit =
-    router = Router(built, Probe.fromJson(js.JSON.parse(probe)))
-    boards = sources.toOption.map(Boards.parse).getOrElse(Vector.empty)
+  /** at the start: okay-chat's built intents (the rules), the probe's weights (JSON, from `fit`), the boards */
+  def init(built: String, probe: String, sources: Option[String] = None): Unit =
+    router = Router(built, Probe.fromJson(J.parse(probe)))
+    boards = sources.map(Boards.parse).getOrElse(Vector.empty)
 
   /** every rule compiled before the first request: V8 compiles a regex on its first use, once for one-byte (Latin)
    * text and once for two-byte (Cyrillic) — 20 and 75 ms, which a request's 10 ms of CPU cannot pay */
-  @JSExport
   def warm(): Unit =
     router.byRule("zzz qqq")
     router.byRule("ъъъ ыыы")
 
-  @JSExport
   def hasTable: Boolean = table != null
 
-  /** the static table's bytes, read once per isolate (from KV, or carried in the Worker) */
-  @JSExport
-  def load(bytes: ArrayBuffer): Unit = table = new StaticTable(new Safetensors(bytes))
+  /** the static table, read once */
+  def load(file: Safetensors): Unit = table = new StaticTable(file)
 
   def route(text: String): Route = router.route(table, text)
 
@@ -50,9 +42,4 @@ object Edge:
   }
 
   /** a message's vector by the static table */
-  def encode(text: String): Option[Float32Array] = table.encode(text)
-
-  @JSExport("route")
-  def routeJs(text: String): js.Dynamic =
-    val r = route(text)
-    js.Dynamic.literal(intent = r.intent, by = r.by, probability = r.probability, margin = r.margin)
+  def encode(text: String): Option[Array[Float]] = table.encode(text)

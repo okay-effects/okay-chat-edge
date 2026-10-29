@@ -4,7 +4,6 @@ import okay.http.Request
 import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
-import scala.scalajs.js
 
 /** a vacancy as kept: its id (`<board>:<the board's id>`), the board, what the chat shows, remote or not, when kept */
 final case class Kept(id: String, board: String, title: String, company: String, place: String, remote: Boolean,
@@ -31,45 +30,40 @@ object Boards:
 
   /** okay-chat's rows (its job-sources.json, `{sources: [...]}`), the kinds read here */
   def parse(json: String): Vector[Board] =
-    val d = js.JSON.parse(json)
-    val rows = (if js.isUndefined(d.sources) then d else d.sources).asInstanceOf[js.Array[js.Dynamic]].toVector
-    rows.map(r => Board(r.name.asInstanceOf[String], r.kind.asInstanceOf[String], r.url.asInstanceOf[String]))
+    val d = J.parse(json)
+    val rows = d.get("sources").getOrElse(d).arr
+    rows.map(r => Board(r("name").str.getOrElse(""), r("kind").str.getOrElse(""), r("url").str.getOrElse("")))
       .filter(b => Set("greenhouse", "ashby", "workable")(b.kind))
 
-  private def str(x: js.Dynamic): Option[String] = x.asInstanceOf[js.UndefOr[Any]].toOption.collect {
-    case s: String if s.trim.nonEmpty => s.trim
-    case n: Double => BigDecimal(n).toBigInt.toString
-  }
-  private def sub(x: js.Dynamic, k: String): js.Dynamic =
-    if js.isUndefined(x) || x == null then js.undefined.asInstanceOf[js.Dynamic] else x.selectDynamic(k)
-  private val remoteWord = new js.RegExp("remote|zdaln|віддален|удал[её]н", "i")
+  private def str(x: J): Option[String] =
+    x.str.map(_.trim).filter(_.nonEmpty).orElse(x.num.map(n => BigDecimal(n).toBigInt.toString))
+  private val remoteWord = Re("remote|zdaln|віддален|удал[её]н", "i")
 
   /** a board's answer read: its vacancies, as kept */
   def read(b: Board, body: String): Vector[Kept] =
-    val d = js.JSON.parse(body)
-    val jobs = (if b.kind == "workable" then d.jobs else d.jobs).asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]]
-      .getOrElse(js.Array()).toVector
-    val company = (if b.kind == "workable" then str(d.name) else None).getOrElse(b.name)
+    val d = J.parse(body)
+    val jobs = d("jobs").arr
+    val company = (if b.kind == "workable" then str(d("name")) else None).getOrElse(b.name)
     jobs.flatMap { j =>
       b.kind match
         case "greenhouse" =>
-          val place = str(sub(j.location, "name")).getOrElse("")
-          for id <- str(j.id); t <- str(j.title); u <- str(j.absolute_url)
-          yield Kept(s"${b.name}:$id", b.name, t, str(j.company_name).getOrElse(company), place,
+          val place = str(j("location")("name")).getOrElse("")
+          for id <- str(j("id")); t <- str(j("title")); u <- str(j("absolute_url"))
+          yield Kept(s"${b.name}:$id", b.name, t, str(j("company_name")).getOrElse(company), place,
             remoteWord.test(place), u)
         case "ashby" =>
-          val country = str(sub(sub(j.address, "postalAddress"), "addressCountry"))
-          val place = (str(j.location).toVector ++ country.filterNot(c => str(j.location).exists(_.contains(c))))
+          val country = str(j("address")("postalAddress")("addressCountry"))
+          val place = (str(j("location")).toVector ++ country.filterNot(c => str(j("location")).exists(_.contains(c))))
             .mkString(", ")
-          for id <- str(j.id); t <- str(j.title); u <- str(j.jobUrl)
+          for id <- str(j("id")); t <- str(j("title")); u <- str(j("jobUrl"))
           yield Kept(s"${b.name}:$id", b.name, t, company, place,
-            j.isRemote.asInstanceOf[js.UndefOr[Boolean]].getOrElse(false) ||
-              str(j.workplaceType).exists(_.equalsIgnoreCase("remote")), u)
+            j("isRemote").bool.getOrElse(false) ||
+              str(j("workplaceType")).exists(_.equalsIgnoreCase("remote")), u)
         case _ =>
-          val place = Vector(str(j.city), str(j.country)).flatten.mkString(", ")
-          for id <- str(j.shortcode); t <- str(j.title); u <- str(j.url)
+          val place = Vector(str(j("city")), str(j("country"))).flatten.mkString(", ")
+          for id <- str(j("shortcode")); t <- str(j("title")); u <- str(j("url"))
           yield Kept(s"${b.name}:$id", b.name, t, company, place,
-            j.telecommuting.asInstanceOf[js.UndefOr[Boolean]].getOrElse(false), u)
+            j("telecommuting").bool.getOrElse(false), u)
     }
 
   val defaultWhere = "poland|polska|ukrain|україн|wroc|warsz|warsaw|krak|gdań|gdan|gdyn|pozna|łódź|lodz|" +
@@ -90,7 +84,7 @@ object Boards:
         Fetch.get[Cloud](b.url).flatMap { r =>
           if r.status != 200 then pure(())
           else Env.variable[Cloud]("JOBS_WHERE").flatMap { w =>
-            val here = new js.RegExp(w.filter(_.trim.nonEmpty).getOrElse(defaultWhere), "iu")
+            val here = Re(w.filter(_.trim.nonEmpty).getOrElse(defaultWhere), "iu")
             Vacancies.keep(b.name, read(b, r.body).filter(k => here.test(k.place)), perTick)
           }.flatMap { (seenBefore, fresh) =>
             if seenBefore && fresh.nonEmpty then Asks.tellNew(fresh, time) else pure(())

@@ -6,10 +6,8 @@ import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
 import okay.serverless.cloud.Sockets
-import okay.serverless.cloudflare.Worker
 import okay.serverless.{Durable, field}
 import okaychatedge.deal.{Deals, Numbers}
-import scala.scalajs.js.annotation.JSExportTopLevel
 
 /**
  * THE CHAT on okay-serverless: a stateless Worker routes each message (the router in its isolate); the conversation
@@ -97,7 +95,8 @@ object Chat:
           case Left(e) => pure(Response.text(s"a turn, as JSON: ${e.message}", 400))
           case Right(turn) => append(name, turn).flatMap(told(_, turn))
               .map(n => Response.json(Json.obj("turn" -> Json.Num(BigDecimal(n)))))
-      case ("GET", "/socket") => Sockets.accept[InActor](request, "page")
+      // a page's socket, its request as it came (`Edges.objectFor`): `/c/<id>/socket`
+      case ("GET", p) if p == "/socket" || p.endsWith("/socket") => Sockets.accept[InActor](request, "page")
       case ("GET", "/page") =>
         Durable.step[ActorStep, InActor, (Int, List[Json])](name)(Durable.get[Int, ActorStep]("count").flatMap(n =>
           Durable.get[List[Json], ActorStep]("turns").map(ts => (n.getOrElse(0), ts.getOrElse(Nil)))))
@@ -319,6 +318,13 @@ object Chat:
     /** the cron's tick: the boards imported one a tick, a remembered search asked again */
     override def scheduled(event: Scheduled): Unit ! Cloud = Boards.tick(event.time)
 
+    /** A PAGE'S SOCKET goes to its conversation's object as it is: the object's 101 holds the socket's other end */
+    override def objectFor(r: Request): Option[(String, String)] =
+      r.path.split('/').toList match
+        case List("", "c", id, "socket") if web.matches(id) &&
+            r.header("upgrade").exists(_.equalsIgnoreCase("websocket")) => Some(("CONVERSATIONS", id))
+        case _ => None
+
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case (_, "" :: "c" :: id :: _) => speaksAs(id).flatMap(ok => if ok then conversation(r, id) else pure(refused))
       case (_, "" :: "deals" :: _) => open.flatMap(ok => if ok then deals(r) else pure(refused))
@@ -358,6 +364,6 @@ object Chat:
             .map(Response.text(_))
       case _ => pure(Response.text("POST /deals, GET /deals/<n>, POST /deals/<n>/<transition>", 404))
 
-  @JSExportTopLevel("worker")
-  val worker: Worker = Worker(Edges, Map("CONVERSATIONS" -> Conversations, "DEALS" -> Deals, "NUMBERS" -> Numbers,
-    "BUDGET" -> Budget.Days))
+  /** the chat's objects, by namespace: on Cloudflare its Durable Objects, on the host its own */
+  val actors: Map[String, Actor] = Map("CONVERSATIONS" -> Conversations, "DEALS" -> Deals, "NUMBERS" -> Numbers,
+    "BUDGET" -> Budget.Days)

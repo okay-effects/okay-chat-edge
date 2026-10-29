@@ -1,5 +1,6 @@
 #!/bin/sh
-# end to end on wrangler dev (workerd): two people, a deal asked, a contact given, the deal answered, both told.
+# end to end on wrangler dev (workerd) — or, TARGET=host, on the JVM (okay-serverless' host): two people, a deal
+# asked, a contact given, the deal answered, both told.
 # `scripts/e2e.sh` after `sbt worker`, `scripts/data.sh` and `scripts/kv.sh --local`
 set -eu
 here=$(cd "$(dirname "$0")/.." && pwd)
@@ -8,13 +9,24 @@ cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
-npx wrangler dev --port "$port" --test-scheduled \
-  --var "JOB_SOURCES:{\"sources\":[{\"name\":\"gamma\",\"kind\":\"greenhouse\",\"url\":\"http://127.0.0.1:$tg/board/gamma\"}]}" \
-  --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
-  --var "TELEGRAM_API:http://127.0.0.1:$tg" --var "JOBS_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
+sources="{\"sources\":[{\"name\":\"gamma\",\"kind\":\"greenhouse\",\"url\":\"http://127.0.0.1:$tg/board/gamma\"}]}"
+if [ "${TARGET:-wrangler}" = host ]; then
+  # the same chat on the JVM (okay-serverless' host), its state in a fresh directory
+  cp=$(cd "$here" && sbt -batch -error "export edgeJVM/Runtime/fullClasspath" | tail -1)
+  state=$(mktemp -d)
+  (cd "$here" && OKAY_CHAT_DIR="$state" PORT="$port" TEST_SCHEDULED=1 JOB_SOURCES="$sources" EMBED=trigrams \
+    LANE_DAILY=0 OPEN_API=yes COUNTRY=PL TELEGRAM_TOKEN=test-token TELEGRAM_SECRET=test-secret \
+    TELEGRAM_API="http://127.0.0.1:$tg" JOBS_API="http://127.0.0.1:$tg" \
+    exec java -cp "$cp" okaychatedge.Serve) > /tmp/okay-chat-edge-e2e.log 2>&1 &
+else
+  npx wrangler dev --port "$port" --test-scheduled --var "JOB_SOURCES:$sources" \
+    --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token \
+    --var TELEGRAM_SECRET:test-secret --var "TELEGRAM_API:http://127.0.0.1:$tg" --var "JOBS_API:http://127.0.0.1:$tg" \
+    > /tmp/okay-chat-edge-e2e.log 2>&1 &
+fi
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT
-for _ in $(seq 1 40); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
+for _ in $(seq 1 90); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
 u="http://127.0.0.1:$port"
 fail=0
 check() { # what, got, expected substring

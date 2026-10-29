@@ -12,6 +12,10 @@ Read before anything else, then `README.md` and `specs/plan.md`.
   program — the frontend is okay-ui / okay-faces, the user's rule); `sbt toolsJs` the build-time tools (`bench/tools.js`: the
   probe's fit, the measures — never in the Worker). `node bench/bench.mjs`, `node bench/rules.mjs`;
   `npx wrangler dev` in `worker/`.
+- One chat, two platforms (the owner's rule 2026-10-29: every app runs on Cloudflare and without it): `edge/` is a
+  crossProject — `shared` the chat, `js` the Worker (the MAIN home), `jvm` okay-serverless' host (the fallback,
+  `sbt edgeJVM/run`). Shared code names no `js.*`: a platform's need goes into `Platform.scala` (`Re`, `J`, `Text`)
+  on both sides. A change is checked on both: `scripts/e2e.sh` and `TARGET=host scripts/e2e.sh`.
 - Public on GitHub (okay-effects/okay-chat-edge, the owner's decision 2026-10-29), okay-chat's data in `data/`
   included. Lines at most 120 wide. Commits: plain
   messages, no attribution trailers.

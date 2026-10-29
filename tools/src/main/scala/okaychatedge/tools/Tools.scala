@@ -15,7 +15,7 @@ object Tools:
   /** THE BUILD: the probe fitted on the semantic intents' examples, as JSON for the Worker */
   @JSExport
   def fit(static: ArrayBuffer, built: String, corpus: String): String =
-    js.JSON.stringify(Router.fit(new StaticTable(new Safetensors(static)), built, corpus).toJson)
+    Router.fit(new StaticTable(new Safetensors(static)), built, corpus).toJson.render
 
   /**
    * THE VECTOR LAYER MEASURED as okay-chat's TestStaticTier measures it: fitted on `pool`, scored on the held-out
@@ -27,7 +27,7 @@ object Tools:
     val p = pool.toVector.flatMap(a => t.encode(a(0)).map(_ -> a(1)))
     val probe = Probe.train(p)
     val centroids = p.groupBy(_._2).toVector.map { (c, rows) =>
-      val acc = new Float32Array(t.dim)
+      val acc = new Array[Float](t.dim)
       for (v, _) <- rows do { var i = 0; while i < acc.length do { acc(i) = acc(i) + v(i); i += 1 } }
       c -> StaticTable.normalised(acc)
     }

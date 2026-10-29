@@ -6,7 +6,6 @@ import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
 import okay.serverless.field
-import scala.scalajs.js
 
 /** a vacancy as the chat lists it: its title, the employer, where, how, the employer's own page */
 final case class Vacancy(title: String, company: String, place: String, workplace: String, url: String,
@@ -31,7 +30,7 @@ final case class JobAsk(query: String, location: Option[String], remote: Boolean
  */
 object Jobs:
   /** a message asking for vacancies: its words name work, and it is not an offer of one's own */
-  private val jobWords = new js.RegExp("(?<!\\p{L})(вакан\\p{L}*|работ[уаы]|роботу|робота|роботи|prac[ayę]|" +
+  private val jobWords = Re("(?<!\\p{L})(вакан\\p{L}*|работ[уаы]|роботу|робота|роботи|prac[ayę]|" +
     "oferty|ofert[ay]? pracy|jobs?|vacanc\\p{L}*|hiring)(?!\\p{L})", "iu")
   def asked(text: String, intent: String): Boolean =
     intent != "offer" && intent != "accept" && intent != "decline" && intent != "ask_candidates" &&
@@ -70,7 +69,7 @@ object Jobs:
     Vector("днепр", "дніпр", "dnipr") -> "Dnipro",
     Vector("берлин", "берлін", "berli") -> "Berlin")
 
-  private val split = new js.RegExp("[^\\p{L}\\p{N}+#.]+", "u")
+  private val split = Re("[^\\p{L}\\p{N}+#.]+", "u")
   private def latin(w: String): Boolean = w.exists(c => c >= 'a' && c <= 'z')
 
   /** the text read: the place, remote, and the words left — Latin ones first */
@@ -88,13 +87,13 @@ object Jobs:
 
   /** a place a message names, by the stems of its words — any message: «ремонтирую сантехнику, Вроцлав» too */
   def placeIn(text: String): Option[String] =
-    import js.JSStringOps.*
-    text.toLowerCase.jsSplit(split).toVector.flatMap(w => places.collectFirst {
+    split.split(text.toLowerCase).flatMap(w => places.collectFirst {
       case (stems, p) if stems.exists(w.startsWith) => p }).headOption
 
+  private val words = Re("[^\\p{L}\\p{N}+#./]+", "u")
+
   def read(text: String): Read =
-    import js.JSStringOps.*
-    val ws = text.toLowerCase.jsSplit(new js.RegExp("[^\\p{L}\\p{N}+#./]+", "u")).toVector
+    val ws = words.split(text.toLowerCase)
       .map(_.stripSuffix(".")).filter(_.nonEmpty)
     val place = ws.flatMap(w => places.collectFirst { case (stems, p) if stems.exists(w.startsWith) => (w, p) })
     val remote = ws.exists(remoteWords)
@@ -130,7 +129,7 @@ object Jobs:
       Some(JobAsk(es.distinct.mkString(" | "), location, r.remote, assumed = r.place.isEmpty && location.isDefined))
     }
 
-  private def encoded(s: String): String = js.URIUtils.encodeURIComponent(s)
+  private def encoded(s: String): String = okay.http.Query.encode(s)
 
   /** the first vacancies Workable has for the ask — each alternative's, by turns — and how many in all */
   def search(a: JobAsk): Either[String, (Int, Vector[Vacancy])] ! Cloud =
@@ -152,15 +151,14 @@ object Jobs:
           "accept" -> List("application/json")))).map { r =>
         if r.status != 200 then Left(s"Workable: ${r.status}")
         else
-          val d = js.JSON.parse(r.body)
-          val jobs = d.jobs.asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]].getOrElse(js.Array())
-          val str = (x: js.Dynamic) => x.asInstanceOf[js.UndefOr[String]].toOption.filter(_.nonEmpty)
-          Right((d.totalSize.asInstanceOf[js.UndefOr[Int]].getOrElse(jobs.length), jobs.toVector.map { j =>
-            val loc = j.location.asInstanceOf[js.UndefOr[js.Dynamic]].toOption
-            Vacancy(str(j.title).getOrElse("?"), j.company.asInstanceOf[js.UndefOr[js.Dynamic]].toOption
-              .flatMap(c => str(c.title)).getOrElse(""),
-              loc.flatMap(l => str(l.city).orElse(str(l.countryName))).getOrElse(""), str(j.workplace).getOrElse(""),
-              str(j.url).getOrElse(""), str(j.created).map(c => js.Date.parse(c).toLong).getOrElse(0L))
+          val d = J.parse(r.body)
+          val jobs = d("jobs").arr
+          val str = (x: J) => x.str.filter(_.nonEmpty)
+          Right((d("totalSize").num.map(_.toInt).getOrElse(jobs.length), jobs.map { j =>
+            val loc = j("location")
+            Vacancy(str(j("title")).getOrElse("?"), str(j("company")("title")).getOrElse(""),
+              str(loc("city")).orElse(str(loc("countryName"))).getOrElse(""), str(j("workplace")).getOrElse(""),
+              str(j("url")).getOrElse(""), str(j("created")).flatMap(Text.isoMillis).getOrElse(0L))
           }))
       }
     }
@@ -205,12 +203,12 @@ object Jobs:
     }
 
   /** «хватит вакансий», «не присылай вакансии», «stop jobs» */
-  private val stop = new js.RegExp("(?<!\\p{L})(хватит|не присылай|не надо|отпиш|перестань|досить|не надсилай|" +
+  private val stop = Re("(?<!\\p{L})(хватит|не присылай|не надо|отпиш|перестань|досить|не надсилай|" +
     "відпиш|przestań|nie wysyłaj|wypisz|stop|unsubscribe)(?!\\p{L})", "iu")
   def stops(text: String): Boolean = stop.test(text) && (jobWords.test(text) || text.trim.split("\\s+").length <= 2)
 
   /** «ещё» in the languages the router's `next` does not know */
-  private val moreWords = new js.RegExp("^\\s*(więcej|następne|dalej|следующие|наступні|ще)\\s*[.!]?\\s*$", "iu")
+  private val moreWords = Re("^\\s*(więcej|następne|dalej|следующие|наступні|ще)\\s*[.!]?\\s*$", "iu")
   def more(text: String, intent: String): Boolean = intent == "next" || moreWords.test(text)
 
   def json(a: JobAsk, from: Int): okay.effects.json.Json =

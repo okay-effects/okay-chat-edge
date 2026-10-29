@@ -14,6 +14,9 @@ effects, Cloudflare's handlers) and [okay-ui](https://github.com/okay-effects/ok
 [okay-faces](https://github.com/okay-effects/okay-faces)). The chat's behaviour is okay-chat's — its rules, its
 phrases, its deal scenario — carried to a platform with no JVM, no GPU and 10 ms of CPU a request.
 
+Cloudflare is its home, not its master: the same code runs on the JVM, on a server of one's own, through
+okay-serverless' host — the fallback, every effect on one process and one directory (see *Without Cloudflare*).
+
 ## What it does
 
 | You write | It does |
@@ -105,11 +108,29 @@ puts the table into KV, deploys the Worker, sets the bot's token and a webhook s
 at the Worker. Variables (`worker/wrangler.toml`): `EMBED` (`ai` or `trigrams`), `LANE` (the model, or none),
 `LANE_DAILY`, `JOBS_WHERE`. A webhook stops a bot's polling: use a bot of its own.
 
+## Without Cloudflare
+
+The chat is written once, against okay-serverless' effects: Cloudflare is one set of their handlers, okay-serverless'
+host another — a JVM process with SQLite for the Durable Objects, D1 and KV, the JDK for HTTP and WebSockets, a
+model server of OpenAI's API for Workers AI. Only the platform's own speed lives apart (`edge/js`: JavaScript's
+regexes and `JSON.parse`; `edge/jvm`: `java.util.regex`, okay's JSON).
+
+```sh
+sbt edgeJVM/run                       # http://127.0.0.1:8787 — the page, the API, /telegram, the cron
+TARGET=host scripts/e2e.sh            # the end-to-end checks, on the host instead of wrangler
+```
+
+Settings come from the environment: `OKAY_CHAT_DIR` (the state, `host-data/`), `PORT`, `HOST`; a model server —
+`AI_URL`, `AI_KEY`, `AI_CHAT_MODEL`, `AI_EMBED_MODEL` (none: no lane, subjects by trigrams); the Worker's variables
+by their names (`TELEGRAM_TOKEN`, `TELEGRAM_SECRET`, `JOBS_WHERE`, …); where people are — `COUNTRY_HEADER` (a
+proxy's header one trusts, `cf-ipcountry`) or `COUNTRY` (a two-letter code).
+
 ## Layout
 
 | | |
 |---|---|
-| `src/main/scala/okaychatedge/` | the Worker: `Router`, `Rules`, `StaticTable`, `Probe`, `Chat` (the app and the conversation), `deal/` (the scenario engine, deals), `Market`, `Embed`, `Jobs`, `Boards`, `Vacancies`, `Asks`, `Lane`, `Budget`, `Telegram`, `Lang`, `Phrases` |
+| `edge/shared/` | the chat, both platforms: `Router`, `Rules`, `StaticTable`, `Probe`, `Chat` (the app and the conversation), `deal/` (the scenario engine, deals), `Market`, `Embed`, `Jobs`, `Boards`, `Vacancies`, `Asks`, `Lane`, `Budget`, `Telegram`, `Lang`, `Phrases` |
+| `edge/js/`, `edge/jvm/` | each platform's regexes, JSON, text, the table's bytes; the Worker's exports; `Serve`, the host's main |
 | `page/` | the page: an okay-ui program (`Chat`), its effect `Talk` and handler, its look |
 | `worker/` | `entry.js` (what JavaScript must say), `wrangler.toml`, `public/` (the page's files) |
 | `tools/`, `bench/` | build-time tools (the probe's fit) and measures — never in the Worker |

@@ -1,7 +1,6 @@
 package okaychatedge
 
 import okay.effects.json.Json
-import scala.scalajs.js
 import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
@@ -54,7 +53,7 @@ object Lane:
    * «записал», «сохранил», «zapisałem» are untrue by construction (seen live 2026-10-29: «Записал: вы предлагаете
    * услуги электрика» for a sentence the router had not taken as an offer). Such a reply is not said.
    */
-  private val commitments = new js.RegExp("(?<!\\p{L})(" +
+  private val commitments = Re("(?<!\\p{L})(" +
     // okay-chat's promises
     "обещаю|обіцяю|obiecuję|я исправлю|я виправлю|поправлю|я (?:буду|стану) (?:показыв|искать|шукати|делать|" +
     "робити|предлаг|пропон)\\p{L}*|больше не (?:буду|будет)|більше не (?:буду|буде)|в следующий раз|" +

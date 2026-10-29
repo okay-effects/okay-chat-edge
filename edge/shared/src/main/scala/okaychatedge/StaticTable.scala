@@ -1,7 +1,6 @@
 package okaychatedge
 
-import scala.scalajs.js
-import scala.scalajs.js.typedarray.*
+import scala.collection.mutable
 
 /**
  * okay-chat's STATIC TABLE (okay's `Static`, distilled from paraphrase-multilingual-MiniLM-L12-v2, cut to 256 by PCA):
@@ -14,20 +13,15 @@ final class StaticTable(file: Safetensors):
   private val vecs = file.u16("vecs")
   private val weights = file.f64("weights")
   /** each unit's row */
-  private val rows: js.Map[String, Int] =
-    val offs = file.u64("labels.offsets")
-    val bytes = file.bytes("labels.bytes")
-    val m = js.Map.empty[String, Int]
-    var i = 0
-    while i + 1 < offs.length do
-      m.update(Safetensors.utf8(bytes.subarray(offs(i).toInt, offs(i + 1).toInt)), i)
-      i += 1
+  private val rows: mutable.HashMap[String, Int] =
+    val m = mutable.HashMap.empty[String, Int]
+    file.strings("labels.offsets", "labels.bytes").zipWithIndex.foreach((l, i) => m(l) = i)
     m
 
   def size: Int = rows.size
 
   /** a unit's vector added into `acc`, times `w` */
-  private def add(row: Int, w: Double, acc: Float32Array): Unit =
+  private def add(row: Int, w: Double, acc: Array[Float]): Unit =
     val at = row * dim
     var i = 0
     while i < dim do
@@ -35,8 +29,8 @@ final class StaticTable(file: Safetensors):
       i += 1
 
   /** a message's embedding: its units' weighted mean, normalised — or none, no unit of it known */
-  def encode(text: String): Option[Float32Array] =
-    val acc = new Float32Array(dim)
+  def encode(text: String): Option[Array[Float]] =
+    val acc = new Array[Float](dim)
     var known = 0
     for u <- StaticTable.units3(text) do
       rows.get(u) match
@@ -48,8 +42,8 @@ final class StaticTable(file: Safetensors):
 
 object StaticTable:
   /** half precision to single: a table of all 65 536 values, made once */
-  private val halves: Float32Array =
-    val t = new Float32Array(65536)
+  private val halves: Array[Float] =
+    val t = new Array[Float](65536)
     var h = 0
     while h < 65536 do
       val s = if (h & 0x8000) != 0 then -1.0 else 1.0
@@ -75,7 +69,7 @@ object StaticTable:
     ws ++ ws.sliding(2).collect { case Vector(a, b) => s"$a $b" } ++
       ws.sliding(3).collect { case Vector(a, b, c) => s"$a $b $c" }
 
-  def normalised(v: Float32Array): Float32Array =
+  def normalised(v: Array[Float]): Array[Float] =
     var s = 0.0
     var i = 0
     while i < v.length do { s += v(i) * v(i); i += 1 }
@@ -85,7 +79,7 @@ object StaticTable:
       while i < v.length do { v(i) = (v(i) / n).toFloat; i += 1 }
     v
 
-  def dot(a: Float32Array, b: Float32Array): Double =
+  def dot(a: Array[Float], b: Array[Float]): Double =
     var s = 0.0
     var i = 0
     while i < a.length do { s += a(i) * b(i); i += 1 }

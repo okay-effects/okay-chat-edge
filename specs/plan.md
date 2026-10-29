@@ -21,5 +21,10 @@ Each step measured against the free plan's limits before the next one starts.
    what the edge does not act on. Left: a per-day cap of our own (okay-chat's), the conversation's last turns as
    context, okay-chat's stray/promise checks on the reply.
 
+8. DONE (2026-10-29) — without Cloudflare: one chat, two platforms (`edge/` a crossProject). Cloudflare the main home;
+   okay-serverless' host (JVM, SQLite, the JDK's HTTP and WebSockets, a model server of OpenAI's API) the fallback,
+   `sbt edgeJVM/run`. The page's socket by `App.objectFor` (no longer entry.js'). The end-to-end checks pass on both
+   (76 and 76). Left: the lane measured on a local model server (rozum's OpenAI API); a deploy recipe for a VPS.
+
 Open: e-mail (a code to register) — what the free plan allows. The table is in KV now (no longer in the Worker's
 3 MB); int8 would halve its read if the first request's 10 ms ever get tight.

@@ -42,18 +42,6 @@ const guarded = (env) => env.AI === undefined ? env : new Proxy(env, {
   },
 });
 
-// A PAGE'S SOCKET, passed through to its conversation's object: the one thing the Scala side cannot carry — an
-// object's 101 holds the socket's other end, and okay-serverless' `Objects.call` answers with a plain response. Only a
-// page's conversation (web: and 32 hex digits), as the API takes; the object accepts it (`Sockets.accept`, hibernating)
-const pageSocket = /^\/c\/(web:[0-9a-f]{32})\/socket$/;
-const socketOf = (request, env) => {
-  const at = pageSocket.exec(decodeURIComponent(new URL(request.url).pathname));
-  if (at === null || request.headers.get("upgrade")?.toLowerCase() !== "websocket") return null;
-  const ns = env.CONVERSATIONS;
-  return ns.get(ns.idFromName(at[1])).fetch(new Request("https://CONVERSATIONS/socket",
-    { headers: { upgrade: "websocket", "okay-object-name": at[1] } }));
-};
-
 // where the person is: the country Cloudflare reads off the request, in English, as the job boards name it — the
 // place a vacancy search takes when none was said (a request can carry no such header of its own: it is replaced)
 const countries = new Intl.DisplayNames(["en"], { type: "region" });
@@ -69,8 +57,6 @@ const located = (request) => {
 
 export default {
   async fetch(request, env, ctx) {
-    const socket = socketOf(request, env);
-    if (socket !== null) return socket;
     try {
       await table(env);
       return await worker.fetch(located(request), guarded(env), ctx);

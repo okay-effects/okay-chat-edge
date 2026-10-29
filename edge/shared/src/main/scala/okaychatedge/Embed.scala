@@ -5,7 +5,6 @@ import okay.scala3.*
 import okay.scala3.std.*
 import okay.serverless.cloud.*
 import okay.serverless.field
-import scala.scalajs.js.typedarray.*
 
 /**
  * WHAT A LISTING IS ABOUT, AS A VECTOR — for matching an offer to a need, which the static table cannot do: it was
@@ -25,13 +24,13 @@ object Embed:
   def space: String ! Cloud = Env.variable[Cloud]("EMBED").map(_.filter(_ == "ai").fold("trigrams")(_ => bgeM3))
 
   /** a text's vector in `space`, normalised */
-  def apply(space: String, text: String): Option[Float32Array] ! Cloud =
+  def apply(space: String, text: String): Option[Array[Float]] ! Cloud =
     if space == bgeM3 then
       Ai.run[Cloud](bgeM3, Json.obj("text" -> Json.Arr(Vector(Json.Str(text))))).map { j =>
         j.field("data").collect { case Json.Arr(rows) => rows }.flatMap(_.headOption).collect {
           case Json.Arr(xs) =>
             val ns = xs.collect { case Json.Num(n) => n.toFloat }
-            val v = new Float32Array(ns.length)
+            val v = new Array[Float](ns.length)
             ns.indices.foreach(i => v(i) = ns(i))
             StaticTable.normalised(v)
         }
@@ -39,8 +38,8 @@ object Embed:
     else pure(trigrams(text))
 
   /** the hashed character trigrams of a text's words, normalised; none for a text with no letters */
-  def trigrams(text: String, dim: Int = 512): Option[Float32Array] =
-    val v = new Float32Array(dim)
+  def trigrams(text: String, dim: Int = 512): Option[Array[Float]] =
+    val v = new Array[Float](dim)
     var any = false
     for w <- StaticTable.tokens(text) do
       val padded = s"#$w#"

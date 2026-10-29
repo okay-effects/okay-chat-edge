@@ -3,7 +3,6 @@ package okaychatedge
 import okay.http.Bytes
 import okay.scala3.*
 import okay.serverless.cloud.*
-import scala.scalajs.js.typedarray.*
 
 /** a listing found for a need: whose, what it says, how close */
 final case class Candidate(party: String, text: String, score: Double)
@@ -30,17 +29,17 @@ object Market:
       side text not null, text text not null, what text not null, space text not null, vec blob not null,
       at integer not null)""").as { made = true }
 
-  def quantised(v: Float32Array): Bytes =
+  def quantised(v: Array[Float]): Bytes =
     Bytes(Array.tabulate(v.length)(i => math.max(-127, math.min(127, math.round(v(i) * 127)).toInt).toByte))
 
-  private def cosine(v: Float32Array, b: Array[Byte]): Double =
+  private def cosine(v: Array[Float], b: Array[Byte]): Double =
     var s = 0.0; var nb = 0.0; var i = 0
     while i < v.length && i < b.length do
       s += v(i) * b(i); nb += b(i).toDouble * b(i); i += 1
     if nb == 0 then 0.0 else s / math.sqrt(nb)
 
   /** a listing kept: its words, its subject, its subject's vector and the space it is in */
-  def add(party: String, side: String, text: String, what: String, space: String, v: Float32Array, at: Long)
+  def add(party: String, side: String, text: String, what: String, space: String, v: Array[Float], at: Long)
     : Unit ! Cloud =
     schema.andThen(Sql.run[Cloud](db,
       "insert into listings (party, side, text, what, space, vec, at) values (?, ?, ?, ?, ?, ?, ?)",
@@ -50,7 +49,7 @@ object Market:
   final case class Waiting(party: String, text: String, score: Double)
 
   /** the others' needs a new offer is close to — the newest `window`, the best of each party, at most `k` */
-  def waiting(me: String, space: String, offer: Float32Array, k: Int = 20): List[Waiting] ! Cloud =
+  def waiting(me: String, space: String, offer: Array[Float], k: Int = 20): List[Waiting] ! Cloud =
     schema.andThen(Sql.query[Cloud](db,
       "select party, text, vec from listings where side = 'need' and space = ? and party <> ? order by id desc limit ?",
       space, me, window)).map { rows =>
@@ -63,7 +62,7 @@ object Market:
     }
 
   /** the others' offers closest to a need, the best of each party, best first */
-  def candidates(me: String, space: String, need: Float32Array, k: Int = 3): List[Candidate] ! Cloud =
+  def candidates(me: String, space: String, need: Array[Float], k: Int = 3): List[Candidate] ! Cloud =
     schema.andThen(Sql.query[Cloud](db,
       "select party, text, vec from listings where side = 'offer' and space = ? and party <> ? " +
         "order by id desc limit ?",
