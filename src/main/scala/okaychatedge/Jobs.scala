@@ -9,7 +9,8 @@ import okay.serverless.field
 import scala.scalajs.js
 
 /** a vacancy as the chat lists it: its title, the employer, where, how, the employer's own page */
-final case class Vacancy(title: String, company: String, place: String, workplace: String, url: String)
+final case class Vacancy(title: String, company: String, place: String, workplace: String, url: String,
+                         created: Long = 0L)
 
 /** what a person asked for: the words to search by, where, remote only */
 final case class JobAsk(query: String, location: Option[String], remote: Boolean)
@@ -105,25 +106,74 @@ object Jobs:
           val d = js.JSON.parse(r.body)
           val jobs = d.jobs.asInstanceOf[js.UndefOr[js.Array[js.Dynamic]]].getOrElse(js.Array())
           val str = (x: js.Dynamic) => x.asInstanceOf[js.UndefOr[String]].toOption.filter(_.nonEmpty)
-          Right((d.totalSize.asInstanceOf[js.UndefOr[Int]].getOrElse(jobs.length), jobs.toVector.take(5).map { j =>
+          Right((d.totalSize.asInstanceOf[js.UndefOr[Int]].getOrElse(jobs.length), jobs.toVector.map { j =>
             val loc = j.location.asInstanceOf[js.UndefOr[js.Dynamic]].toOption
             Vacancy(str(j.title).getOrElse("?"), j.company.asInstanceOf[js.UndefOr[js.Dynamic]].toOption
               .flatMap(c => str(c.title)).getOrElse(""),
               loc.flatMap(l => str(l.city).orElse(str(l.countryName))).getOrElse(""), str(j.workplace).getOrElse(""),
-              str(j.url).getOrElse(""))
+              str(j.url).getOrElse(""), str(j.created).map(c => js.Date.parse(c).toLong).getOrElse(0L))
           }))
       }
     }
 
-  /** a message asking for vacancies, answered */
-  def answer(text: String, l: Lang, at: Long): String ! Cloud =
-    ask(text, at).flatMap {
-      case None => pure(Phrases.whichJob(l))
-      case Some(a) => search(a).map {
-        case Left(e) => Phrases.jobsUnreachable(l, e)
-        case Right((_, Vector())) => Phrases.noJobs(l, a.query, a.location, a.remote)
-        case Right((total, vs)) => Phrases.jobs(l, a.query, a.location, a.remote, total, vs.zipWithIndex.map((v, i) =>
-          s"${i + 1}. ${v.title}" + Vector(v.company, v.place, v.workplace).filter(_.nonEmpty)
-            .mkString(" — ", ", ", "") + s"\n${v.url}"))
-      }
+  /** how many a message shows */
+  val page = 5
+
+  /** the boards' vacancies first (okay-chat's employers, PL/UA), then Workable's search; one of each title and
+   * employer; how many in all */
+  def results(a: JobAsk): Either[String, (String, Vector[Vacancy])] ! Cloud =
+    Vacancies.search(a, Vacancies.most).flatMap(boards => search(a).map { found =>
+      // the boards' are read up to `most`: as many as that, and there may be more
+      def total(n: Int) = if boards.size >= Vacancies.most then s"$n+" else n.toString
+      found match
+        case Left(e) if boards.isEmpty => Left(e)
+        case Left(_) => Right((total(boards.size), boards))
+        case Right((all, ws)) =>
+          val both = (boards ++ ws).distinctBy(v => (v.title.toLowerCase, v.company.toLowerCase))
+          Right((total(all + both.size - ws.size), both))
+    })
+
+  private def lines(vs: Vector[Vacancy], from: Int): Vector[String] = vs.zipWithIndex.map((v, i) =>
+    s"${from + i + 1}. ${v.title}" + Vector(v.company, v.place, v.workplace).filter(_.nonEmpty)
+      .mkString(" — ", ", ", "") + s"\n${v.url}")
+
+  /** a page of vacancies for an ask, from `from` — the reply, and whether there are more after it */
+  def shown(a: JobAsk, l: Lang, from: Int): String ! Cloud =
+    results(a).map {
+      case Left(e) => Phrases.jobsUnreachable(l, e)
+      case Right((_, Vector())) => Phrases.noJobs(l, a.query, a.location, a.remote)
+      case Right((_, vs)) if from >= vs.size => Phrases.noMoreJobs(l)
+      case Right((total, vs)) =>
+        val those = vs.slice(from, from + page)
+        Phrases.jobs(l, a.query, a.location, a.remote, total, from, lines(those, from), from + page < vs.size)
     }
+
+  /** a message asking for vacancies, answered — and the ask, for «ещё» and «запомни» */
+  def answer(text: String, l: Lang, at: Long): (String, Option[JobAsk]) ! Cloud =
+    ask(text, at).flatMap {
+      case None => pure((Phrases.whichJob(l), None))
+      case Some(a) => shown(a, l, 0).map(_ -> Some(a))
+    }
+
+  /** «хватит вакансий», «не присылай вакансии», «stop jobs» */
+  private val stop = new js.RegExp("(?<!\\p{L})(хватит|не присылай|не надо|отпиш|перестань|досить|не надсилай|" +
+    "відпиш|przestań|nie wysyłaj|wypisz|stop|unsubscribe)(?!\\p{L})", "iu")
+  def stops(text: String): Boolean = stop.test(text) && (jobWords.test(text) || text.trim.split("\\s+").length <= 2)
+
+  /** «ещё» in the languages the router's `next` does not know */
+  private val moreWords = new js.RegExp("^\\s*(więcej|następne|dalej|следующие|наступні|ще)\\s*[.!]?\\s*$", "iu")
+  def more(text: String, intent: String): Boolean = intent == "next" || moreWords.test(text)
+
+  def json(a: JobAsk, from: Int): okay.effects.json.Json =
+    import okay.effects.json.Json
+    Json.obj("query" -> Json.Str(a.query), "location" -> Json.Str(a.location.getOrElse("")),
+      "remote" -> Json.Bool(a.remote), "from" -> Json.Num(BigDecimal(from)))
+
+  def fromJson(j: okay.effects.json.Json): Option[(JobAsk, Int)] =
+    import okay.effects.json.Json
+    for
+      q <- j.field("query").collect { case Json.Str(s) => s }
+      loc = j.field("location").collect { case Json.Str(s) => s }.filter(_.nonEmpty)
+      r = j.field("remote").contains(Json.Bool(true))
+      f = j.field("from").collect { case Json.Num(n) => n.toInt }.getOrElse(0)
+    yield (JobAsk(q, loc, r), f)

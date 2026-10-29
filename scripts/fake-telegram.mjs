@@ -9,7 +9,19 @@ const vacancies = [
     workplace: 'hybrid', url: 'https://jobs.workable.com/view/1/scala-engineer' },
   { title: 'Senior Scala Developer', company: { title: 'Beta' }, location: { countryName: 'Poland' },
     workplace: 'remote', url: 'https://jobs.workable.com/view/2/senior-scala-developer' }]
+// an employer's board (Greenhouse's shape): one vacancy at first, a second from the second reading on — a new one
+let boardReads = 0
+const board = () => ({ jobs: [
+  { id: 1, title: 'Scala Engineer', company_name: 'Gamma', location: { name: 'Wrocław, Poland' },
+    absolute_url: 'https://job-boards.greenhouse.io/gamma/jobs/1' },
+  ...(boardReads > 1 ? [{ id: 2, title: 'Senior Scala Engineer', company_name: 'Gamma',
+    location: { name: 'Wrocław, Poland (Remote)' }, absolute_url: 'https://job-boards.greenhouse.io/gamma/jobs/2' }] : [])] })
 createServer((req, res) => {
+  if (req.url.startsWith('/board/')) {
+    boardReads++
+    res.setHeader('content-type', 'application/json')
+    return res.end(JSON.stringify(board()))
+  }
   if (req.url.startsWith('/api/v1/jobs')) {
     const q = new URL(req.url, 'http://x').searchParams
     appendFileSync(file, JSON.stringify({ jobs: Object.fromEntries(q) }) + '\n')

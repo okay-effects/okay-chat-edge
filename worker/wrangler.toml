@@ -56,6 +56,10 @@ new_sqlite_classes = ["Deal", "Numbers"]
 tag = "v3"
 new_sqlite_classes = ["Budget"]
 
+# the employers' boards imported one a tick, a remembered vacancy search asked again (src/main/scala/.../Boards.scala)
+[triggers]
+crons = ["*/2 * * * *"]
+
 # the market: every offer and need a listing (D1: on the free plan)
 [[d1_databases]]
 binding = "MARKET"

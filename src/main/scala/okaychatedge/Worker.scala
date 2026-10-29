@@ -14,9 +14,13 @@ object Edge:
   private var table: StaticTable = null
 
   /** at the isolate's start: okay-chat's built intents (the rules) and the probe's weights (JSON, from `fit`) */
+  /** okay-chat's employers' boards (its job-sources.json), imported by the cron (`Boards`) */
+  var boards: Vector[Board] = Vector.empty
+
   @JSExport
-  def init(built: String, probe: String): Unit =
+  def init(built: String, probe: String, sources: js.UndefOr[String] = js.undefined): Unit =
     router = Router(built, Probe.fromJson(js.JSON.parse(probe)))
+    boards = sources.toOption.map(Boards.parse).getOrElse(Vector.empty)
 
   /** every rule compiled before the first request: V8 compiles a regex on its first use, once for one-byte (Latin)
    * text and once for two-byte (Cyrillic) — 20 and 75 ms, which a request's 10 ms of CPU cannot pay */

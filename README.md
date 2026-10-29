@@ -231,6 +231,26 @@ gives a Data & AI Engineer). `scripts/e2e.sh`: 62 checks, Workable's stand-in in
 Not yet: okay-chat's 208 employers' own boards (Greenhouse, Ashby — 0.4–2.4 MB a board: an import by cron, a board
 a tick, to stay inside 10 ms), more than the first five («ещё»), a search remembered and its new vacancies told.
 
+## Step 13 (2026-10-29): the employers' boards, «ещё», a search remembered
+
+THE BOARDS (`Boards`, `Vacancies`): okay-chat's 206 employers' boards (its job-sources.json — Greenhouse, Ashby,
+Workable accounts, their public posting APIs) imported by a cron trigger (`*/2 * * * *`, free), one board a tick, all
+in ~7 hours. Measured: the largest board 1.4 MB parses in 1.6 ms (the tick's 10 ms of CPU); the boards hold 24 498
+vacancies, 1 540 of them in Poland, Ukraine, Europe (`JOBS_WHERE`) — only those kept, the rest (mostly US remote) left
+to Workable's search; D1 written the changes only (new inserted, gone deleted), at most 300 new a tick — the first
+filling ~11 000 rows written of the free 100 000 a day. A full-text index (FTS5, accents folded: «wroclaw» finds
+Wrocław) so a search reads its matches, not the table. A search: the boards' first, then Workable's, one of each title
+and employer. `GET /vacancies`: how many, from how many boards.
+
+«ещё» (the router's `next`, and więcej / następne / следующие / ще): the next five of the same search (the conversation
+keeps it). «запомни» (the router's `remember`) after a search: kept (`Asks`, D1, five a person) — the boards' new
+vacancies that answer it told as they are imported (a board seen before), and each remembered search asked of Workable
+again in turn, one a tick, for what was posted since; told by the person's door (Telegram's bot, the page's socket).
+«хватит вакансий» / «stop» / «przestań» forgets them.
+
+`scripts/e2e.sh`: 70 checks — a stand-in board that gains a vacancy between two cron ticks (`--test-scheduled`):
+imported, searched beside Workable, remembered, the new one told, «хватит вакансий».
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

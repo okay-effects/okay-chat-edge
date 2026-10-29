@@ -67,6 +67,7 @@ object Chat:
               Durable.put[String, ActorStep]("contact", c)))
             .andThen(keep("shown", shown))
             .andThen(keep("lang", turn.field("lang")))
+            .andThen(keep("jobs", turn.field("jobs")))
             .andThen(keep("need", turn.field("need").orElse(shown.flatMap(_ => turn.field("text")))))
             .as(count)
         }
@@ -103,7 +104,7 @@ object Chat:
             "turns" -> Json.Arr(ts.toVector.map(shownTurn)))))
       case ("GET", "/state") =>
         Durable.step[ActorStep, InActor, Vector[(String, Option[Json])]](name)(
-          Vector("shown", "need", "lang").foldLeft(pure[Vector[(String, Option[Json])], ActorStep](Vector.empty))(
+          Vector("shown", "need", "lang", "jobs").foldLeft(pure[Vector[(String, Option[Json])], ActorStep](Vector.empty))(
             (acc, k) => acc.flatMap(kv => Durable.get[Json, ActorStep](k).map(v => kv :+ (k -> v))))
             .flatMap(kv => Durable.get[List[Json], ActorStep]("turns").map(ts =>
               kv :+ ("recent" -> Some(Json.Arr(recent(ts.getOrElse(Nil))))))))
@@ -117,7 +118,7 @@ object Chat:
 
   // ---- what the Worker asks the objects
 
-  private def tell(party: String, text: String, at: Long): Unit ! Cloud =
+  private[okaychatedge] def tell(party: String, text: String, at: Long): Unit ! Cloud =
     Objects.call[Cloud]("CONVERSATIONS", party, Request.json("POST", "/tell",
       Json.obj("told" -> Json.Str(text), "at" -> Json.Num(BigDecimal(at))))).andThen(Telegram.push(party, text))
 
@@ -129,7 +130,7 @@ object Chat:
 
   /** what a conversation remembers between turns: the candidates it last showed, for which need, in which language */
   final case class State(shown: Vector[String], need: String, lang: Option[Lang],
-                         recent: Vector[(String, String)] = Vector.empty)
+                         recent: Vector[(String, String)] = Vector.empty, jobs: Option[(JobAsk, Int)] = None)
 
   private def stateOf(party: String): State ! Cloud =
     Objects.call[Cloud]("CONVERSATIONS", party, Request("GET", "/state")).map(parsed).map { j =>
@@ -138,7 +139,8 @@ object Chat:
         j.field("need").collect { case Json.Str(t) => t }.getOrElse(""),
         j.field("lang").collect { case Json.Str(c) => c }.flatMap(Lang.parse),
         j.field("recent").collect { case Json.Arr(xs) => xs.collect {
-          case Json.Arr(Vector(Json.Str(r), Json.Str(s))) => (r, s) } }.getOrElse(Vector.empty))
+          case Json.Arr(Vector(Json.Str(r), Json.Str(s))) => (r, s) } }.getOrElse(Vector.empty),
+        j.field("jobs").flatMap(Jobs.fromJson))
     }
 
   /** the language a party is told in: the one it wrote last */
@@ -183,7 +185,7 @@ object Chat:
         }
 
   /** what a turn says besides its reply: the candidates it showed, kept by the conversation for «спроси 1 2» */
-  final case class Said(reply: String, shown: Option[Vector[String]] = None)
+  final case class Said(reply: String, shown: Option[Vector[String]] = None, jobs: Option[Json] = None)
 
   /** an offer kept in the market, and the needs already waiting for it told; a need kept, and answered with the
    * closest offers, numbered — each in okay-chat's words, in the language of the one it is said to */
@@ -249,7 +251,17 @@ object Chat:
         // okay-chat's: the message's own language if it shows one, else what this person wrote last
         val l = Lang.answer(text, state.lang)
         val reply: Option[Said] ! Cloud =
-          if Jobs.asked(text, route.intent) then Jobs.answer(text, l, at).map(t => Some(Said(t)))
+          // vacancies: «хватит вакансий»; a search; «ещё» and «запомни» after one
+          if Jobs.stops(text) then Asks.forget(id).map(n => Some(Said(Phrases.jobsStopped(l, n))))
+          else if Jobs.asked(text, route.intent) then Jobs.answer(text, l, at).map((t, a) =>
+            Some(Said(t, jobs = a.map(Jobs.json(_, 0)))))
+          else if state.jobs.isDefined && Jobs.more(text, route.intent) then
+            val (a, from) = state.jobs.get
+            Jobs.shown(a, l, from + Jobs.page).map(t => Some(Said(t, jobs = Some(Jobs.json(a, from + Jobs.page)))))
+          else if state.jobs.isDefined && route.intent == "remember" then
+            val (a, _) = state.jobs.get
+            Asks.remember(id, a, l, at).map(ok =>
+              Some(Said(if ok then Phrases.jobsRemembered(l, a.query) else Phrases.jobsTooMany(l))))
           else route.intent match
           case i if answers(i) => answer(id, i, text, at, l).map(t => Some(Said(t)))
           case "need" if tradeless(Embed.what(Edge.slot("need", "what", text), text)) =>
@@ -267,6 +279,7 @@ object Chat:
             "lang" -> Json.Str(Lang.code(l)), "at" -> Json.Num(BigDecimal(at))) ++
             said.map(s => "reply" -> Json.Str(s.reply)) ++
             said.flatMap(_.shown).map(sh => "shown" -> Json.Arr(sh.map(Json.Str(_)))) ++
+            said.flatMap(_.jobs).map("jobs" -> _) ++
             email.findFirstIn(text).map("contact" -> Json.Str(_)) ++ contact.map("door" -> Json.Str(_)))
           Objects.call[Cloud]("CONVERSATIONS", id, Request.json("POST", "/", kept)).map(k =>
             (route, said, parsed(k).field("turn").getOrElse(Json.Null), l))
@@ -296,11 +309,17 @@ object Chat:
       else open
     private val refused = Response.text("not this conversation", 403)
 
+    /** the cron's tick: the boards imported one a tick, a remembered search asked again */
+    override def scheduled(event: Scheduled): Unit ! Cloud = Boards.tick(event.time)
+
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case (_, "" :: "c" :: id :: _) => speaksAs(id).flatMap(ok => if ok then conversation(r, id) else pure(refused))
       case (_, "" :: "deals" :: _) => open.flatMap(ok => if ok then deals(r) else pure(refused))
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))
       case ("POST", List("", "telegram")) => Telegram.update(r)
+      // how many vacancies are kept, from how many boards
+      case ("GET", List("", "vacancies")) => Vacancies.count.map((n, b) =>
+        Response.json(Json.obj("vacancies" -> Json.Num(BigDecimal(n)), "boards" -> Json.Num(BigDecimal(b)))))
       case _ => pure(Response.text("POST /c/<id>, GET /c/<id>, POST /route", 404))
 
     private def conversation(r: Request, id: String): Response ! Cloud = (r.method, r.path.split('/').toList) match

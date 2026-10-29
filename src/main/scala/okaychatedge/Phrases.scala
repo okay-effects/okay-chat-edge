@@ -197,18 +197,67 @@ object Phrases:
       case Pl => ", zdalnie"
       case En => ", remote")
 
-  def jobs(l: Lang, query: String, location: Option[String], remote: Boolean, total: Int, lines: Vector[String])
-    : String =
-    val head = l match
-      case Ru => s"вакансии «$query»${where(l, location, remote)} — всего $total, первые ${lines.size}:"
-      case Uk => s"вакансії «$query»${where(l, location, remote)} — усього $total, перші ${lines.size}:"
-      case Pl => s"oferty „$query”${where(l, location, remote)} — razem $total, pierwsze ${lines.size}:"
-      case En => s"vacancies \"$query\"${where(l, location, remote)} — $total in all, the first ${lines.size}:"
+  def jobs(l: Lang, query: String, location: Option[String], remote: Boolean, total: String, from: Int,
+           lines: Vector[String], more: Boolean): String =
+    val head =
+      if from > 0 then "" else (l match
+        case Ru => s"вакансии «$query»${where(l, location, remote)} — всего $total:"
+        case Uk => s"вакансії «$query»${where(l, location, remote)} — усього $total:"
+        case Pl => s"oferty „$query”${where(l, location, remote)} — razem $total:"
+        case En => s"vacancies \"$query\"${where(l, location, remote)} — $total in all:") + "\n\n"
+    val next = if !more then "" else (l match
+      case Ru => "«ещё» — следующие; "
+      case Uk => "«ще» — наступні; "
+      case Pl => "„więcej” — następne; "
+      case En => "\"more\" for the next; ")
     val tail = l match
-      case Ru => "Откликайтесь на странице работодателя. Источник — Workable."
-      case Uk => "Відгукуйтеся на сторінці роботодавця. Джерело — Workable."
-      case Pl => "Aplikuj na stronie pracodawcy. Źródło — Workable."
-      case En => "Apply on the employer's page. Source: Workable."
+      case Ru => s"${next}«запомни» — сообщу о новых. Откликайтесь на странице работодателя."
+      case Uk => s"${next}«запам'ятай» — повідомлю про нові. Відгукуйтеся на сторінці роботодавця."
+      case Pl => s"${next}„zapamiętaj” — dam znać o nowych. Aplikuj na stronie pracodawcy."
+      case En => s"${next}\"remember\" and I will tell you of new ones. Apply on the employer's page."
+    s"$head${lines.mkString("\n\n")}\n\n$tail"
+
+  def noMoreJobs(l: Lang): String = l match
+    case Ru => "это все вакансии по этому запросу. «запомни» — сообщу о новых"
+    case Uk => "це всі вакансії за цим запитом. «запам'ятай» — повідомлю про нові"
+    case Pl => "to wszystkie oferty dla tego zapytania. „zapamiętaj” — dam znać o nowych"
+    case En => "that is every vacancy for this search. \"remember\" and I will tell you of new ones"
+
+  def jobsRemembered(l: Lang, query: String): String = l match
+    case Ru => s"запомнил поиск «$query» — пришлю новые вакансии, как появятся. «хватит вакансий» — перестану"
+    case Uk => s"запам'ятав пошук «$query» — надішлю нові вакансії, щойно з'являться. «досить вакансій» — перестану"
+    case Pl => s"zapamiętałem wyszukiwanie „$query” — wyślę nowe oferty, gdy się pojawią. „przestań” — przestanę"
+    case En => s"remembered the search \"$query\" — I will send new vacancies as they appear. \"stop\" to end it"
+
+  def jobsTooMany(l: Lang): String = l match
+    case Ru => "у вас уже пять запомненных поисков — «хватит вакансий» забудет их, и можно начать заново"
+    case Uk => "у вас уже п'ять запам'ятованих пошуків — «досить вакансій» забуде їх, і можна почати знову"
+    case Pl => "masz już pięć zapamiętanych wyszukiwań — „przestań” je zapomni i można zacząć od nowa"
+    case En => "you already have five remembered searches — \"stop\" forgets them, and you can start again"
+
+  def jobsStopped(l: Lang, n: Int): String =
+    if n == 0 then (l match
+      case Ru => "запомненных поисков вакансий нет"
+      case Uk => "запам'ятованих пошуків вакансій немає"
+      case Pl => "nie ma zapamiętanych wyszukiwań ofert"
+      case En => "there are no remembered vacancy searches")
+    else l match
+      case Ru => s"больше не пришлю вакансий — забыл поисков: $n"
+      case Uk => s"більше не надсилатиму вакансій — забув пошуків: $n"
+      case Pl => s"nie będę już wysyłać ofert — zapomniałem wyszukiwań: $n"
+      case En => s"no more vacancies — searches forgotten: $n"
+
+  def newJobs(l: Lang, query: String, lines: Vector[String]): String =
+    val head = l match
+      case Ru => s"новые вакансии по поиску «$query»:"
+      case Uk => s"нові вакансії за пошуком «$query»:"
+      case Pl => s"nowe oferty dla wyszukiwania „$query”:"
+      case En => s"new vacancies for \"$query\":"
+    val tail = l match
+      case Ru => "«хватит вакансий» — перестану присылать"
+      case Uk => "«досить вакансій» — перестану надсилати"
+      case Pl => "„przestań” — przestanę wysyłać"
+      case En => "\"stop\" to end these"
     s"$head\n\n${lines.mkString("\n\n")}\n\n$tail"
 
   def noJobs(l: Lang, query: String, location: Option[String], remote: Boolean): String = l match

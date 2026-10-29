@@ -6,8 +6,9 @@ import { DurableObject } from "cloudflare:workers";
 import { edge, worker } from "./okay.js";
 import intents from "../data/intents.json.txt";
 import probe from "../data/probe.json.txt";
+import sources from "../data/job-sources.json.txt";
 
-edge.init(intents, probe);
+edge.init(intents, probe, sources);
 edge.warm();
 
 let loading = null;
@@ -69,4 +70,6 @@ export default {
       throw e;
     }
   },
+  // the cron's tick (wrangler.toml [triggers]): an employer's board imported, a remembered search asked again
+  scheduled(event, env, ctx) { return worker.scheduled(event, guarded(env), ctx); },
 };

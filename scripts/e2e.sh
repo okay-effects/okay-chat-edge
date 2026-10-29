@@ -8,7 +8,9 @@ cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
-npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
+npx wrangler dev --port "$port" --test-scheduled \
+  --var "JOB_SOURCES:{\"sources\":[{\"name\":\"gamma\",\"kind\":\"greenhouse\",\"url\":\"http://127.0.0.1:$tg/board/gamma\"}]}" \
+  --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
   --var "TELEGRAM_API:http://127.0.0.1:$tg" --var "JOBS_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT
@@ -72,7 +74,7 @@ check "a Telegram conversation is not the API's to read" \
 check "…nor to speak in" "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'берусь 1' "$u/c/tg:101")" '403'
 # vacancies from Workable's search (the stand-in): the words, the place, remote read from the message
 jobs=$(say jobs1 'ищу работу scala разработчиком во Вроцлаве')
-check "vacancies: the keyword and the city" "$jobs" 'вакансии «scala», Wrocław — всего 2, первые 2:'
+check "vacancies: the keyword and the city" "$jobs" 'вакансии «scala», Wrocław — всего 2:'
 check "…each with the employer and its page" "$jobs" '1. Scala Engineer — Acme, Wrocław, hybrid\nhttps://jobs.workable.com/view/1'
 check "…the city asked as Workable reads it" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" \
   '"location":"Wrocław","query":"scala"'
@@ -80,6 +82,20 @@ say jobs2 'szukam pracy scala zdalnie' > /dev/null
 check "Polish, remote" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" '"workplace":"remote"'
 check "none found: another word suggested" "$(say jobs3 'вакансии cobol, Kraków')" 'по «cobol», Kraków вакансий не нашёл'
 check "an offer of work is not a job search" "$(say jobs5 'могу работать сантехником, Вроцлав')" 'записал предложение'
+# the employers' boards: imported by the cron, searched beside Workable, a remembered search told of the new ones
+tick() { curl -s -o /dev/null "$u/cdn-cgi/handler/scheduled?cron=*/2+*+*+*+*"; sleep 1; }
+tick
+check "a board imported by the cron" "$(curl -s "$u/vacancies")" '{"vacancies":1,"boards":1}'
+b=$(say board1 'вакансии scala, Вроцлав')
+check "the board's vacancy first, then Workable's" "$b" '1. Scala Engineer — Gamma, Wrocław, Poland\nhttps://job-boards.greenhouse.io'
+check "…one of each title and employer" "$b" '2. Scala Engineer — Acme'
+check "«ещё» past the end" "$(say board1 'ещё')" 'это все вакансии по этому запросу'
+check "«запомни»: the search kept" "$(say board1 'запомни')" 'запомнил поиск «scala»'
+tick
+check "a new vacancy on the board: the search's person told" "$(curl -s "$u/c/board1")" \
+  'новые вакансии по поиску «scala»:\n\nSenior Scala Engineer — Gamma, Wrocław, Poland (Remote), remote'
+check "…a gone one deleted, a new one kept" "$(curl -s "$u/vacancies")" '{"vacancies":2,"boards":1}'
+check "«хватит вакансий»: forgotten" "$(say board1 'хватит вакансий')" 'больше не пришлю вакансий — забыл поисков: 1'
 pageid="web:$(openssl rand -hex 16)"
 check "a page's socket: its turn pushed as it is kept" "$(node "$here/scripts/socket-check.mjs" "$u" "$pageid" 2>&1)" \
   '{"n":1,"turn":{"text":"помощь","reply":"Вот всё, что я умею.'
