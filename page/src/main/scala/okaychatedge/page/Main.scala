@@ -5,6 +5,7 @@ import okay.business.faces.Skin
 import okay.scala3.std.Async
 import org.scalajs.dom
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.scalajs.js
 
 /** the words of the page itself, in the browser's language — the chat answers in the language of what is written */
 final case class Words(market: String, message: String, example: String, send: String, offline: String => String):
@@ -27,6 +28,7 @@ object Words:
 object Main:
   def main(args: Array[String]): Unit =
     val root = Option(dom.document.getElementById("app")).getOrElse(dom.document.body)
+    Typing.install()
     val _ = Async.toFuture(Dom.run(root, Look.skin, follow = true)(
       Talk.overHttp(Talk.mine())(Chat.main(Words.of(dom.window.navigator.language)))))
 
@@ -64,12 +66,42 @@ object Look:
       |  min-width: 0; }
       |body .okay-ui nav.okay-actions .okay-field { margin: 0; }
       |body .okay-ui nav.okay-actions form.okay-form { box-sizing: border-box; max-width: 100%; }
-      |body .okay-ui nav.okay-actions form.okay-form > button { flex: none; margin: 0; padding-inline: 16px; }
+      |body .okay-ui nav.okay-actions form.okay-form { align-items: flex-end !important; }
+      |body .okay-ui nav.okay-actions form.okay-form > fieldset { flex: 1 1 0; min-width: 0; display: block; }
+      |body .okay-ui nav.okay-actions .okay-field { width: 100%; min-width: 0; }
+      |body .okay-ui nav.okay-actions form.okay-form > button { flex: none; width: auto; min-width: 0; margin: 0;
+      |  align-self: flex-end;
+      |  min-height: 44px; padding-inline: 16px; }
       |body .okay-ui nav.okay-actions .okay-label, body .okay-ui nav.okay-actions .okay-doc {
       |  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-      |body .okay-ui nav.okay-actions input { width: 100%; border-radius: 20px; }
+      |body .okay-ui nav.okay-actions :is(input, textarea) { display: block; width: 100%; box-sizing: border-box;
+      |  border-radius: 20px; padding: 10px 14px; font: inherit; line-height: 1.35; resize: none;
+      |  min-height: 44px; max-height: 40vh; overflow-y: auto; field-sizing: content; }
       |""".stripMargin
 
   val skin: Skin =
     val calm = Skin.calm(accent = "#7b5cff", deep = "#2a1f66")
     Skin(calm.look, calm.css + css)
+
+/**
+ * WRITING A MESSAGE, as in a messenger — what the page's face leaves to the page: the line grows with what is
+ * written (where the browser has no `field-sizing`), and on a computer Enter sends, Shift+Enter is a new line; on a
+ * phone the keyboard's return is a new line and the button sends.
+ */
+object Typing:
+  def install(): Unit =
+    val fine = dom.window.matchMedia("(pointer: fine)").matches
+    val grows = js.Dynamic.global.CSS.supports("field-sizing", "content").asInstanceOf[Boolean]
+    def line(t: dom.EventTarget): Option[dom.HTMLTextAreaElement] = t match
+      case a: dom.HTMLTextAreaElement if a.closest("nav.okay-actions") != null => Some(a)
+      case _ => None
+    dom.document.addEventListener("input", (e: dom.Event) => if !grows then line(e.target).foreach { a =>
+      a.style.height = "auto"
+      a.style.height = s"${a.scrollHeight}px"
+    })
+    dom.document.addEventListener("keydown", (e: dom.KeyboardEvent) =>
+      if fine && e.key == "Enter" && !e.shiftKey && !e.asInstanceOf[js.Dynamic].isComposing.asInstanceOf[Boolean] then
+        line(e.target).foreach { a =>
+          e.preventDefault()
+          a.form.asInstanceOf[js.Dynamic].requestSubmit()
+        })

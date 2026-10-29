@@ -65,6 +65,6 @@ object Chat:
       Part.block("log")((said ++ pending)*)) ++ s.problem.map(Part.problem).toList
 
   def render(w: Words, s: State): Screen[Msg] =
-    // a fresh field after each message sent: the line empties
-    val line = Form.one(Field.text(w.message).keyed(s"message-${s.sent}").hinted(w.example))
+    // a fresh field after each message sent: the line empties; a text that grows, as a message does
+    val line = Form.one(Field.longText(w.message).keyed(s"message-${s.sent}").hinted(w.example))
     Screen[Msg]("Okay! Chat", conversation(w, s) :+ line, List(Button.submit(w.send, line)(Msg.Send(_))))
