@@ -50,3 +50,25 @@ worker := {
   IO.copyFile(out / "main.js", to)
   to
 }
+
+/** the chat's web page: an okay-ui program (page/) — its screens on okay-faces' DOM face, the conversation reached by
+ * its effect `Talk` — linked into worker/public/page.js: the Worker's static assets, served free and outside the 100 000
+ * requests a day */
+lazy val page = (project in file("page"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    name := "okay-chat-edge-page",
+    resolvers += "okay-ui" at "https://okay-effects.github.io/okay-ui/maven",
+    libraryDependencies += "io.github.okay-effects" %%% "okay-ui" % "0.1.0",
+    scalaJSUseMainModuleInitializer := true,
+    scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.ESModule)),
+  )
+
+val pageJs = taskKey[File]("the web page's code, linked")
+pageJs := {
+  val out = (page / Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value
+  val _ = (page / Compile / fullLinkJS).value
+  val to = baseDirectory.value / "worker" / "public" / "page.js"
+  IO.copyFile(out / "main.js", to)
+  to
+}

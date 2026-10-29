@@ -265,14 +265,32 @@ object Chat:
             .map(_.fold(canned)(Said(_))))
       }
 
+    /** a conversation the open API may speak as: a page's (`web:` and 32 hex digits, unguessable) — never a
+     * Telegram one (its id is a number anyone can try); any other only where `OPEN_API` is set (tests, local) */
+    private val web = "^web:[0-9a-f]{32}$".r
+    private def open: Boolean ! Cloud = Env.variable[Cloud]("OPEN_API").map(_.exists(_.trim.nonEmpty))
+    private def speaksAs(id: String): Boolean ! Cloud =
+      if id.startsWith(Telegram.prefix) then pure(false)
+      else if web.matches(id) then pure(true)
+      else open
+    private val refused = Response.text("not this conversation", 403)
+
     override def fetch(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
+      case (_, "" :: "c" :: id :: _) => speaksAs(id).flatMap(ok => if ok then conversation(r, id) else pure(refused))
+      case (_, "" :: "deals" :: _) => open.flatMap(ok => if ok then deals(r) else pure(refused))
       case ("POST", List("", "route")) => pure(Response.json(routeJson(Edge.route(r.body))))
-      case ("POST", List("", "c", id)) =>
+      case ("POST", List("", "telegram")) => Telegram.update(r)
+      case _ => pure(Response.text("POST /c/<id>, GET /c/<id>, POST /route", 404))
+
+    private def conversation(r: Request, id: String): Response ! Cloud = (r.method, r.path.split('/').toList) match
+      case ("POST", List("", "c", _)) =>
         Clock.now[Cloud].flatMap(at => turn(id, r.body, None, at)).map((route, said, n, _) =>
           Response.json(Json.Obj(Vector("route" -> routeJson(route), "turn" -> n) ++
             said.map(s => "reply" -> Json.Str(s.reply)))))
-      case ("POST", List("", "telegram")) => Telegram.update(r)
-      case ("GET", List("", "c", id)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))
+      case ("GET", List("", "c", _)) => Objects.call[Cloud]("CONVERSATIONS", id, Request("GET", "/"))
+      case _ => pure(Response.text("POST /c/<id>, GET /c/<id>", 404))
+
+    private def deals(r: Request): Response ! Cloud = (r.method, r.path.split('/').toList) match
       case ("POST", List("", "deals")) => Descent.parse(r.body).toOption match
           case None => pure(Response.text("{seeker, provider, what}", 400))
           case Some(j) =>
@@ -287,7 +305,7 @@ object Chat:
           case None => pure(Response.text("{by}", 400))
           case Some(by) => Clock.now[Cloud].flatMap(at => langOf(by).flatMap(l => answer(by, transition, n, at, l)))
             .map(Response.text(_))
-      case _ => pure(Response.text("POST /route, POST /c/<id>, GET /c/<id>, POST /deals, GET /deals/<n>", 404))
+      case _ => pure(Response.text("POST /deals, GET /deals/<n>, POST /deals/<n>/<transition>", 404))
 
   @JSExportTopLevel("worker")
   val worker: Worker = Worker(Edges, Map("CONVERSATIONS" -> Conversations, "DEALS" -> Deals, "NUMBERS" -> Numbers,

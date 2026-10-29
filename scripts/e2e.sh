@@ -8,7 +8,7 @@ cd "$here/worker"
 rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
-npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE_DAILY:0 --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
+npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
   --var "TELEGRAM_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT
@@ -67,6 +67,10 @@ tgsay() { # user id, username, text
     --data "{\"update_id\":1,\"message\":{\"message_id\":1,\"chat\":{\"id\":$1,\"type\":\"private\"},
       \"from\":{\"id\":$1,\"username\":\"$2\"},\"text\":\"$3\"}}" "$u/telegram"
 }
+check "a Telegram conversation is not the API's to read" \
+  "$(curl -s -o /dev/null -w '%{http_code}' "$u/c/tg:101")" '403'
+check "…nor to speak in" "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'берусь 1' "$u/c/tg:101")" '403'
+check "the page is served" "$(curl -s "$u/")" '<script type="module" src="/page.js">'
 check "an update without the secret refused" \
   "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' "$u/telegram")" '403'
 check "/start: the greeting, in four languages" "$(tgsay 101 ivan '/start')" 'Привет! Чем могу помочь?'
@@ -84,7 +88,7 @@ check "a Telegram need finds the Telegram offer" "$(tgsay 102 jane 'нужно �
   'умею класть плитку'
 tgsay 102 jane 'спроси 1' > /dev/null
 check "the provider told by the bot" "$(cat /tmp/okay-chat-edge-tg.jsonl)" '"chat_id":"101","text":"Вас спрашивают'
-deal=$(curl -s "$u/c/tg:101" | grep -o 'берусь [0-9]*' | head -1)
+deal=$(grep -o 'берусь [0-9]*' /tmp/okay-chat-edge-tg.jsonl | head -1)
 check "the provider accepts in Telegram: the seeker's account" "$(tgsay 101 ivan "$deal")" 'его контакт: @jane'
 check "the seeker told by the bot, with the provider's account" "$(cat /tmp/okay-chat-edge-tg.jsonl)" \
   '"chat_id":"102","text":"По сделке'

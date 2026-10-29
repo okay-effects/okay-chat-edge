@@ -6,3 +6,4 @@ worker/.wrangler/
 worker/okay.js
 data/
 bench/tools.js
+worker/public/page.js

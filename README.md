@@ -121,7 +121,7 @@ edge does not act on yet gets «Чем я могу вам помочь?» in its
 (`scripts/fake-telegram.mjs`): an update without the secret refused, /start, an offer, a need finding it, «спроси 1»
 reaching the provider by the bot, «берусь N» in Telegram giving each side the other's account.
 
-Live: `npx wrangler login`, then `TELEGRAM_TOKEN=<from @BotFather> scripts/deploy.sh` — a bot of its own (a webhook
+Live: `npx wrangler login`, `sbt worker pageJs`, then `TELEGRAM_TOKEN=<from @BotFather> scripts/deploy.sh` — a bot of its own (a webhook
 stops getUpdates, so not okay-chat's): the KV namespace and the D1 database made once, the table into KV, the Worker
 deployed, the token and a webhook secret as its secrets, the webhook set.
 
@@ -172,6 +172,25 @@ ported (`ModelLane.commits`: promises, confessions) and the edge's own: the lane
 a sentence nothing had recorded); the prompt says so too, and asks the side when it is not said — «Я электрик из
 Кракова» → «Вы хотите предложить свои услуги или ищете работу? …». The help's «мои заявки» row says what the edge
 does. `scripts/e2e.sh`: 49 checks, the lane on with a budget of 0 (the object asked, the model never).
+
+## Step 10 (2026-10-29): the web page, on okay-ui
+
+https://okay-chat-edge.okay-effects.workers.dev/ — a third door to the same conversations. The page is an okay-ui
+program (`page/`, okay-ui 0.1.0): one screen shown again on every change — the conversation as blocks (`me`, `bot`),
+a line, a button — its screens on okay-faces' DOM face (`Dom.run(root, skin, follow = true)`: what is typed, the
+focus and the scroll kept; the end kept in view). The conversation is the effect `Talk` (`Say`, `Read`, `Changes`),
+its handler `Talk.overHttp` (fetch into okay-scala's `Async`); the page's own words in the browser's language, what
+the chat says the chat's. This browser's conversation is `web:` and 32 hex digits, kept in localStorage — the only
+key to it. What another party tells it arrives as a turn: the page reads the conversation after each message, every
+20 s while in view, and on coming back into view.
+
+Served as the Worker's static assets (`[assets]`, `worker/public/`, page.js by `sbt pageJs`, 307 KB gzipped): free,
+outside the 100 000 requests a day. Checked in Chromium (Playwright), locally and live: two browsers — an offer, a
+need finding it, «спроси 1», the provider's «Вас спрашивают… (сделка 6)», «берусь 6», the seeker told the contact.
+
+THE OPEN API CLOSED to what is not a page's: `/c/<id>` takes `web:<32 hex>` only (a Telegram conversation's id is a
+number anyone could try — it was readable and writable by anyone), other ids only with `OPEN_API` set (tests);
+`/deals` only with `OPEN_API`. `scripts/e2e.sh`: 52 checks.
 
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
