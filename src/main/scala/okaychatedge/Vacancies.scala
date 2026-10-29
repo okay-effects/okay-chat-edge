@@ -47,15 +47,23 @@ object Vacancies:
     s.toLowerCase.split("[^\\p{L}\\p{N}]+").toVector.filter(_.nonEmpty)
 
   /** the boards' vacancies for an ask: every word of it in the title, the place in the place, the newest first */
+  /** a word searched as a start of words only from this long: «java» must not find «javascript» */
+  val prefixFrom = 6
+  def prefix(w: String): String = if w.length >= prefixFrom then "*" else ""
+  def matches(w: String, word: String): Boolean = if w.length >= prefixFrom then word.startsWith(w) else word == w
+
   /** how many of the boards' a search reads */
   val most = 50
 
   def search(a: JobAsk, limit: Int = most): Vector[Vacancy] ! Cloud =
-    val words = terms(a.query)
-    if words.isEmpty then pure(Vector.empty)
+    val alts = a.alternatives.map(terms).filter(_.nonEmpty)
+    if alts.isEmpty then pure(Vector.empty)
     else
-      val m = (words.map(w => s"title:$w*") ++ a.location.toVector.flatMap(terms).map(w => s"place:$w*"))
-        .mkString(" AND ")
+      // any alternative, each of its words in the title; the place's words in the place
+      // a short word whole («java» is not «javascript»), a long one as a start («develop» finds «developer»)
+      val titles = alts.map(ws => ws.map(w => s"title:$w${Vacancies.prefix(w)}").mkString("(", " AND ", ")"))
+        .mkString("(", " OR ", ")")
+      val m = (titles +: a.location.toVector.flatMap(terms).map(w => s"place:$w*")).mkString(" AND ")
       schema.andThen(Sql.query[Cloud](db,
         "select v.title, v.company, v.place, v.remote, v.url from vacancies_fts f join vacancies v on v.id = f.vid " +
           s"where vacancies_fts match ?${if a.remote then " and v.remote = 1" else ""} order by v.at desc limit ?",

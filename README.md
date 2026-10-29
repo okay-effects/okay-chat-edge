@@ -256,6 +256,19 @@ hour holds few.
 `scripts/e2e.sh`: 71 checks — a stand-in board that gains a vacancy between two cron ticks (`--test-scheduled`):
 imported, searched beside Workable, remembered, the new one told, «хватит вакансий».
 
+## Step 14 (2026-10-29): where a search is
+
+Seen live: «Ищу работу Scala или Java de» searched the whole world for «scala java de» — Spanish «Ingeniero de Datos»
+first. Now a search's place: the one the message says; else the last place this person named in the conversation (any
+message — «ремонтирую сантехнику, Вроцлав» too; the conversation keeps `place`); else, from the page, the person's
+country as Cloudflare reads it off the request (`request.cf.country` → `x-okay-country`, in English, set by entry.js
+and never taken from the client) — said back as «Poland (где вы)», with how to say another and «везде» for none.
+Telegram gives no place: there it is what the person named. «или / або / lub / or» makes alternatives, each searched
+(Workable once each, D1's index by OR) and merged by turns; a Latin fragment under three letters is dropped unless it
+is a skill (go, qa, ui, ai, ml, c#, …). A short word is matched whole — «java» found «JavaScript» by prefix — a word of
+six letters or more as a start. Live: «Ищу работу Scala или Java» → «scala или java», Poland (где вы), 29: Java
+engineers in Kraków first. `scripts/e2e.sh`: 76 checks.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

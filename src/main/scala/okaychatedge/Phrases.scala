@@ -190,21 +190,41 @@ object Phrases:
 
   // ---- vacancies (the edge's own: okay-chat finds them by its résumé flow)
 
-  private def where(l: Lang, location: Option[String], remote: Boolean): String =
-    location.fold("")(p => s", $p") + (if !remote then "" else l match
+  /** a search's words as said back: its alternatives with «или» */
+  def query(l: Lang, a: JobAsk): String =
+    a.alternatives.mkString(l match
+      case Ru => " или "
+      case Uk => " або "
+      case Pl => " lub "
+      case En => " or ")
+
+  private def where(l: Lang, a: JobAsk): String =
+    a.location.fold("")(p => s", $p" + (if !a.assumed then "" else l match
+      case Ru => " (где вы)"
+      case Uk => " (де ви)"
+      case Pl => " (gdzie jesteś)"
+      case En => " (where you are)")) + (if !a.remote then "" else l match
       case Ru => ", удалённо"
       case Uk => ", віддалено"
       case Pl => ", zdalnie"
       case En => ", remote")
 
-  def jobs(l: Lang, query: String, location: Option[String], remote: Boolean, total: String, from: Int,
-           lines: Vector[String], more: Boolean): String =
+  /** when the place was taken, not said: how to say another, or none */
+  private def otherPlace(l: Lang, a: JobAsk): String =
+    if !a.assumed then "" else l match
+      case Ru => "Другое место — допишите город или страну; по всему миру — «везде». "
+      case Uk => "Інше місце — допишіть місто або країну; по всьому світу — «скрізь». "
+      case Pl => "Inne miejsce — dopisz miasto lub kraj; cały świat — „wszędzie”. "
+      case En => "Another place — add a city or a country; the whole world — \"anywhere\". "
+
+  def jobs(l: Lang, a: JobAsk, total: String, from: Int, lines: Vector[String], more: Boolean): String =
+    val q = query(l, a)
     val head =
       if from > 0 then "" else (l match
-        case Ru => s"вакансии «$query»${where(l, location, remote)} — всего $total:"
-        case Uk => s"вакансії «$query»${where(l, location, remote)} — усього $total:"
-        case Pl => s"oferty „$query”${where(l, location, remote)} — razem $total:"
-        case En => s"vacancies \"$query\"${where(l, location, remote)} — $total in all:") + "\n\n"
+        case Ru => s"вакансии «$q»${where(l, a)} — всего $total:"
+        case Uk => s"вакансії «$q»${where(l, a)} — усього $total:"
+        case Pl => s"oferty „$q”${where(l, a)} — razem $total:"
+        case En => s"vacancies \"$q\"${where(l, a)} — $total in all:") + "\n\n"
     val next = if !more then "" else (l match
       case Ru => "«ещё» — следующие; "
       case Uk => "«ще» — наступні; "
@@ -215,7 +235,19 @@ object Phrases:
       case Uk => s"${next}«запам'ятай» — повідомлю про нові. Відгукуйтеся на сторінці роботодавця."
       case Pl => s"${next}„zapamiętaj” — dam znać o nowych. Aplikuj na stronie pracodawcy."
       case En => s"${next}\"remember\" and I will tell you of new ones. Apply on the employer's page."
-    s"$head${lines.mkString("\n\n")}\n\n$tail"
+    s"$head${lines.mkString("\n\n")}\n\n${if from > 0 then "" else otherPlace(l, a)}$tail"
+
+  def noJobs(l: Lang, a: JobAsk): String =
+    val q = query(l, a)
+    (l match
+      case Ru => s"по «$q»${where(l, a)} вакансий не нашёл. Попробуйте другое слово или другое место, " +
+        "например: «вакансии java, Kraków». "
+      case Uk => s"за «$q»${where(l, a)} вакансій не знайшов. Спробуйте інше слово або інше місце, " +
+        "наприклад: «вакансії java, Kraków». "
+      case Pl => s"dla „$q”${where(l, a)} nie znalazłem ofert. " +
+        "Spróbuj innego słowa albo innego miejsca, na przykład: „oferty java, Kraków”. "
+      case En => s"no vacancies for \"$q\"${where(l, a)}. Try another word or another place, " +
+        "for example: \"jobs java, Kraków\". ") + otherPlace(l, a)
 
   def noMoreJobs(l: Lang): String = l match
     case Ru => "это все вакансии по этому запросу. «запомни» — сообщу о новых"
@@ -259,17 +291,6 @@ object Phrases:
       case Pl => "„przestań” — przestanę wysyłać"
       case En => "\"stop\" to end these"
     s"$head\n\n${lines.mkString("\n\n")}\n\n$tail"
-
-  def noJobs(l: Lang, query: String, location: Option[String], remote: Boolean): String = l match
-    case Ru => s"по «$query»${where(l, location, remote)} вакансий не нашёл. Попробуйте другое слово или без города, " +
-      "например: «вакансии java, Kraków»"
-    case Uk => s"за «$query»${where(l, location, remote)} вакансій не знайшов. Спробуйте інше слово або без міста, " +
-      "наприклад: «вакансії java, Kraków»"
-    case Pl => s"dla „$query”${where(l, location, remote)} nie znalazłem ofert. " +
-      "Spróbuj innego słowa albo bez miasta, " +
-      "na przykład: „oferty java, Kraków”"
-    case En => s"no vacancies for \"$query\"${where(l, location, remote)}. Try another word, or no city, " +
-      "for example: \"jobs java, Kraków\""
 
   def whichJob(l: Lang): String = l match
     case Ru => "Какую работу ищете? Напишите ключевое слово и, если нужно, город или «удалённо» — например: " +

@@ -12,8 +12,10 @@ import scala.scalajs.js
 final case class Vacancy(title: String, company: String, place: String, workplace: String, url: String,
                          created: Long = 0L)
 
-/** what a person asked for: the words to search by, where, remote only */
-final case class JobAsk(query: String, location: Option[String], remote: Boolean)
+/** what a person asked for: the words to search by (alternatives, «scala или java»), where, remote only — and
+ * whether the place was not said but taken (from the conversation, or where the person is) */
+final case class JobAsk(query: String, location: Option[String], remote: Boolean, assumed: Boolean = false):
+  def alternatives: Vector[String] = query.split(" \\| ").toVector.map(_.trim).filter(_.nonEmpty)
 
 /**
  * VACANCIES FROM THE INTERNET, asked in the chat — «вакансии scala, Вроцлав», «ищу работу java разработчиком
@@ -72,33 +74,76 @@ object Jobs:
   private def latin(w: String): Boolean = w.exists(c => c >= 'a' && c <= 'z')
 
   /** the text read: the place, remote, and the words left — Latin ones first */
-  def read(text: String): (Vector[String], Option[String], Boolean) =
+  /** «или», «or»: alternatives, each searched */
+  private val or = Set("или", "або", "чи", "lub", "albo", "czy", "or", "/")
+  /** «везде»: no place, the whole board */
+  private val anywhere = Set("везде", "везде.", "всюду", "скрізь", "wszędzie", "anywhere", "worldwide", "global")
+  /** the short words that are skills, not fragments («de», «la» are not) */
+  private val shortSkills = Set("go", "c", "r", "qa", "ui", "ux", "ai", "ml", "bi", "hr", "pm", "js", "ts", "c#", "c++",
+    "f#", "3d", "ios", "sql", "php", "net", ".net", "sap", "erp", "crm", "seo", "smm")
+
+  /** what a message says of a search: its alternatives (each its words), the place, remote, «везде» */
+  final case class Read(alternatives: Vector[Vector[String]], place: Option[String], remote: Boolean,
+                        anywhere: Boolean)
+
+  /** a place a message names, by the stems of its words — any message: «ремонтирую сантехнику, Вроцлав» too */
+  def placeIn(text: String): Option[String] =
     import js.JSStringOps.*
-    val ws = text.toLowerCase.jsSplit(split).toVector.map(_.stripSuffix(".")).filter(_.nonEmpty)
+    text.toLowerCase.jsSplit(split).toVector.flatMap(w => places.collectFirst {
+      case (stems, p) if stems.exists(w.startsWith) => p }).headOption
+
+  def read(text: String): Read =
+    import js.JSStringOps.*
+    val ws = text.toLowerCase.jsSplit(new js.RegExp("[^\\p{L}\\p{N}+#./]+", "u")).toVector
+      .map(_.stripSuffix(".")).filter(_.nonEmpty)
     val place = ws.flatMap(w => places.collectFirst { case (stems, p) if stems.exists(w.startsWith) => (w, p) })
     val remote = ws.exists(remoteWords)
-    val left = ws.filterNot(w => asking(w) || remoteWords(w) || place.exists(_._1 == w))
-    val telling = left.filterNot(general)
-    (if telling.nonEmpty then telling else left, place.headOption.map(_._2), remote)
+    val groups = ws.foldLeft(Vector(Vector.empty[String]))((gs, w) =>
+      if or(w) then gs :+ Vector.empty else gs.init :+ (gs.last :+ w))
+    val alternatives = groups.map { g =>
+      val left = g.filterNot(w => asking(w) || remoteWords(w) || anywhere(w) || place.exists(_._1 == w) ||
+        (latin(w) && w.length < 3 && !shortSkills(w)))
+      val telling = left.filterNot(general)
+      if telling.nonEmpty then telling else left
+    }.filter(_.nonEmpty)
+    Read(alternatives, place.headOption.map(_._2), remote, ws.exists(anywhere))
 
-  /** the words to search by: the Latin ones as written; with none, the rest put into English by the model */
-  def ask(text: String, at: Long): Option[JobAsk] ! Cloud =
-    val (left, location, remote) = read(text)
-    val latinOnes = left.filter(latin)
-    if left.isEmpty then pure(None)
-    else if latinOnes.nonEmpty then pure(Some(JobAsk(latinOnes.mkString(" "), location, remote)))
+  /** an alternative's words to search by: the Latin ones as written; with none, put into English by the model */
+  private def english(words: Vector[String], at: Long): String ! Cloud =
+    val latinOnes = words.filter(latin)
+    if latinOnes.nonEmpty then pure(latinOnes.mkString(" "))
     else Lane.model.flatMap {
-      case None => pure(Some(JobAsk(left.mkString(" "), location, remote)))
+      case None => pure(words.mkString(" "))
       case Some(m) => Budget.take(at).flatMap(granted =>
-        if !granted then pure(Some(JobAsk(left.mkString(" "), location, remote)))
-        else Lane.english(m, left.mkString(" ")).map(e =>
-          Some(JobAsk(e.getOrElse(left.mkString(" ")), location, remote))))
+        if !granted then pure(words.mkString(" "))
+        else Lane.english(m, words.mkString(" ")).map(_.getOrElse(words.mkString(" "))))
+    }
+
+  /** the search a message asks: its words, and the place — said, or else `near` (the conversation's place, or where
+   * the person is), unless «везде» */
+  def ask(text: String, at: Long, near: Option[String] = None): Option[JobAsk] ! Cloud =
+    val r = read(text)
+    if r.alternatives.isEmpty then pure(None)
+    else r.alternatives.foldLeft(pure[Vector[String], Cloud](Vector.empty))((acc, words) =>
+      acc.flatMap(es => english(words, at).map(es :+ _))).map { es =>
+      val location = r.place.orElse(if r.anywhere then None else near)
+      Some(JobAsk(es.distinct.mkString(" | "), location, r.remote, assumed = r.place.isEmpty && location.isDefined))
     }
 
   private def encoded(s: String): String = js.URIUtils.encodeURIComponent(s)
 
-  /** the first vacancies Workable has for the ask, and how many it has in all — or what went wrong */
+  /** the first vacancies Workable has for the ask — each alternative's, by turns — and how many in all */
   def search(a: JobAsk): Either[String, (Int, Vector[Vacancy])] ! Cloud =
+    a.alternatives.foldLeft(pure[Vector[Either[String, (Int, Vector[Vacancy])]], Cloud](Vector.empty))((acc, q) =>
+      acc.flatMap(rs => searchOne(a.copy(query = q)).map(rs :+ _))).map { rs =>
+      val ok = rs.collect { case Right(r) => r }
+      if ok.isEmpty then rs.collectFirst { case Left(e) => Left(e) }.getOrElse(Right((0, Vector.empty)))
+      else
+        val longest = ok.map(_._2.size).max
+        Right((ok.map(_._1).sum, (0 until longest).toVector.flatMap(i => ok.flatMap(_._2.lift(i)))))
+    }
+
+  private def searchOne(a: JobAsk): Either[String, (Int, Vector[Vacancy])] ! Cloud =
     Env.variable[Cloud]("JOBS_API").flatMap { api =>
       val q = Vector(Some(s"query=${encoded(a.query)}"), a.location.map(l => s"location=${encoded(l)}"),
         Option.when(a.remote)("workplace=remote")).flatten.mkString("&")
@@ -145,16 +190,16 @@ object Jobs:
   def shown(a: JobAsk, l: Lang, from: Int): String ! Cloud =
     results(a).map {
       case Left(e) => Phrases.jobsUnreachable(l, e)
-      case Right((_, Vector())) => Phrases.noJobs(l, a.query, a.location, a.remote)
+      case Right((_, Vector())) => Phrases.noJobs(l, a)
       case Right((_, vs)) if from >= vs.size => Phrases.noMoreJobs(l)
       case Right((total, vs)) =>
         val those = vs.slice(from, from + page)
-        Phrases.jobs(l, a.query, a.location, a.remote, total, from, lines(those, from), from + page < vs.size)
+        Phrases.jobs(l, a, total, from, lines(those, from), from + page < vs.size)
     }
 
   /** a message asking for vacancies, answered — and the ask, for «ещё» and «запомни» */
-  def answer(text: String, l: Lang, at: Long): (String, Option[JobAsk]) ! Cloud =
-    ask(text, at).flatMap {
+  def answer(text: String, l: Lang, at: Long, near: Option[String]): (String, Option[JobAsk]) ! Cloud =
+    ask(text, at, near).flatMap {
       case None => pure((Phrases.whichJob(l), None))
       case Some(a) => shown(a, l, 0).map(_ -> Some(a))
     }
@@ -171,7 +216,7 @@ object Jobs:
   def json(a: JobAsk, from: Int): okay.effects.json.Json =
     import okay.effects.json.Json
     Json.obj("query" -> Json.Str(a.query), "location" -> Json.Str(a.location.getOrElse("")),
-      "remote" -> Json.Bool(a.remote), "from" -> Json.Num(BigDecimal(from)))
+      "remote" -> Json.Bool(a.remote), "assumed" -> Json.Bool(a.assumed), "from" -> Json.Num(BigDecimal(from)))
 
   def fromJson(j: okay.effects.json.Json): Option[(JobAsk, Int)] =
     import okay.effects.json.Json
@@ -180,4 +225,5 @@ object Jobs:
       loc = j.field("location").collect { case Json.Str(s) => s }.filter(_.nonEmpty)
       r = j.field("remote").contains(Json.Bool(true))
       f = j.field("from").collect { case Json.Num(n) => n.toInt }.getOrElse(0)
-    yield (JobAsk(q, loc, r), f)
+      assumed = j.field("assumed").contains(Json.Bool(true))
+    yield (JobAsk(q, loc, r, assumed), f)

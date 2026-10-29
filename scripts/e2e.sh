@@ -81,6 +81,17 @@ check "…the city asked as Workable reads it" "$(grep '"jobs"' /tmp/okay-chat-e
 say jobs2 'szukam pracy scala zdalnie' > /dev/null
 check "Polish, remote" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" '"workplace":"remote"'
 check "a role's general word alone is the search" "$(say jobs6 'вакансии engineer, Poland')" 'по «engineer», Poland'
+# «или», a fragment, the place: said, remembered from the conversation, where the person is, «везде»
+say jobs7 'Ищу работу Scala или Java de' > /dev/null
+check "«или»: each alternative searched, a fragment («de») dropped" \
+  "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -2 | tr -d '\n')" '"query":"scala"}}{"jobs":{"location":"Poland","query":"java"}}'
+check "no place said: where the person is (Cloudflare's country), said so" "$(say jobs8 'вакансии scala')" '(где вы)'
+say jobs9 'умею класть плитку, Вроцлав' > /dev/null
+check "no place said: the one named before in the conversation" "$(say jobs9 'вакансии scala')" \
+  'вакансии «scala», Wrocław (где вы) — всего 2'
+check "…and how to say another, or «везде»" "$(say jobs9 'вакансии scala')" 'по всему миру — «везде»'
+say jobs9 'вакансии scala везде' > /dev/null
+check "«везде»: no place" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" '{"jobs":{"query":"scala"}}'
 check "none found: another word suggested" "$(say jobs3 'вакансии cobol, Kraków')" 'по «cobol», Kraków вакансий не нашёл'
 check "an offer of work is not a job search" "$(say jobs5 'могу работать сантехником, Вроцлав')" 'записал предложение'
 # the employers' boards: imported by the cron, searched beside Workable, a remembered search told of the new ones

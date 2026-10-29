@@ -54,13 +54,26 @@ const socketOf = (request, env) => {
     { headers: { upgrade: "websocket", "okay-object-name": at[1] } }));
 };
 
+// where the person is: the country Cloudflare reads off the request, in English, as the job boards name it — the
+// place a vacancy search takes when none was said (a request can carry no such header of its own: it is replaced)
+const countries = new Intl.DisplayNames(["en"], { type: "region" });
+const located = (request) => {
+  const code = request.cf?.country;
+  const headers = new Headers(request.headers);
+  headers.delete("x-okay-country");
+  if (code && /^[A-Z]{2}$/.test(code) && code !== "XX" && code !== "T1") {
+    headers.set("x-okay-country", countries.of(code));
+  }
+  return new Request(request, { headers });
+};
+
 export default {
   async fetch(request, env, ctx) {
     const socket = socketOf(request, env);
     if (socket !== null) return socket;
     try {
       await table(env);
-      return await worker.fetch(request, guarded(env), ctx);
+      return await worker.fetch(located(request), guarded(env), ctx);
     } catch (e) {
       // Telegram retries an update it got an error for, for hours: one that failed is logged and let go
       if (new URL(request.url).pathname === "/telegram") {

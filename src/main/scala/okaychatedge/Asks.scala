@@ -53,7 +53,8 @@ object Asks:
   /** whether a vacancy answers a search: each of its words starts a word of the title, its place is in the place */
   def answers(a: JobAsk, k: Kept): Boolean =
     val title = folded(k.title).split("[^\\p{L}\\p{N}]+").filter(_.nonEmpty)
-    folded(a.query).split("[^\\p{L}\\p{N}]+").filter(_.nonEmpty).forall(w => title.exists(_.startsWith(w))) &&
+    a.alternatives.exists(q => folded(q).split("[^\\p{L}\\p{N}]+").filter(_.nonEmpty)
+      .forall(w => title.exists(Vacancies.matches(w, _)))) &&
       a.location.forall(l => folded(k.place).contains(folded(l))) && (!a.remote || k.remote)
 
   private def line(v: Vacancy): String =
@@ -61,7 +62,7 @@ object Asks:
 
   private def tell(r: Remembered, vs: Vector[Vacancy], at: Long): Unit ! Cloud =
     if vs.isEmpty then pure(())
-    else Chat.tell(r.party, Phrases.newJobs(r.lang, r.ask.query, vs.take(told).map(line)), at)
+    else Chat.tell(r.party, Phrases.newJobs(r.lang, Phrases.query(r.lang, r.ask), vs.take(told).map(line)), at)
 
   /** the boards' new vacancies told to the searches they answer */
   def tellNew(fresh: Vector[Kept], at: Long): Unit ! Cloud =

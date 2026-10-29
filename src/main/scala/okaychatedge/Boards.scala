@@ -15,7 +15,8 @@ final case class Board(name: String, kind: String, url: String)
 
 /**
  * THE EMPLOYERS' OWN BOARDS, imported — okay-chat's 208 (Greenhouse, Ashby, Workable accounts: their public posting
- * APIs, specs/jobs.md), one board a cron tick (every 2 minutes; the free plan's 10 ms of CPU: the largest board, 1.4 MB,
+ * APIs, specs/jobs.md), one board a cron tick (every 2 minutes; the free plan's 10 ms of CPU: the largest board,
+ * 1.4 MB,
  * parses in 1.6 ms), all of them in ~7 hours. A board's vacancies are compared with the ones kept: the new inserted,
  * the gone deleted — D1's writes are the changes only. A board seen before: its new vacancies told to the searches
  * remembered that they answer (`Asks`).
