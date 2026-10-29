@@ -40,6 +40,8 @@ object Look:
   val css: String =
     """
       |body .okay-ui { max-width: 760px; margin: 0 auto; }
+      |body > footer .bar { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+      |body > footer .more { margin-left: auto; }
       |body .okay-ui h1.okay-heading-1 { display: none; }
       |body .okay-mark-head { display: flex; gap: 12px; align-items: center; padding: 4px 0 12px;
       |  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
