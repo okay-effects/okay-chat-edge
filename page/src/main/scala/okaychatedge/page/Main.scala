@@ -53,6 +53,11 @@ object Look:
       |body .okay-mark-me, body .okay-mark-bot, body .okay-mark-me-sending, body .okay-mark-bot-typing {
       |  display: block; max-width: 82%; padding: 8px 12px; border-radius: 16px; }
       |body .okay-mark-log .okay-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+      |body .okay-mark-log > .okay-group > .okay-mark > .okay-group { display: block; }
+      |body .okay-mark-log .okay-mark .okay-text { display: inline; }
+      |body .okay-mark-log .okay-link { color: var(--okay-accent, #7b5cff); text-decoration: underline;
+      |  text-underline-offset: 2px; overflow-wrap: anywhere; }
+      |body .okay-mark-log :is(.okay-mark-me, .okay-mark-me-sending) .okay-link { color: #fff; }
       |body .okay-mark-me, body .okay-mark-me-sending { align-self: flex-end; background: #7b5cff; color: #fff;
       |  border-bottom-right-radius: 4px; }
       |body .okay-mark-me-sending, body .okay-mark-bot-typing { opacity: .6; }

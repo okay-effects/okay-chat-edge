@@ -53,11 +53,26 @@ object Chat:
       case Left(e) => s.copy(problem = Some(w.offline(e)))
     }
 
+  private val url = """https?://[^\s<>«»"]+[^\s<>«»".,;:!?)\]]""".r
+
+  /** a link as shown: its host and the start of its path — a vacancy's address is a line and a half */
+  def label(u: String): String =
+    val bare = u.replaceFirst("^https?://", "").replaceFirst("^www\\.", "")
+    if bare.length <= 40 then bare else bare.take(38) + "…"
+
+  /** what a message says, its addresses links: text, link, text… (each a part, shown in one flow) */
+  def withLinks(x: String): List[Part] =
+    val (parts, rest) = url.findAllMatchIn(x).foldLeft((List.empty[Part], 0)) { case ((ps, at), m) =>
+      (ps ++ Option.when(m.start > at)(Part.text(x.substring(at, m.start))).toList :+ Part.link(label(m.matched),
+        m.matched), m.end)
+    }
+    parts ++ Option.when(rest < x.length)(Part.text(x.substring(rest))).toList
+
   private def conversation(w: Words, s: State): List[Part] =
     val said =
       if s.turns.isEmpty && s.sending.isEmpty then List(Part.block("bot")(Part.text(w.greeting)))
       else s.turns.toList.flatMap(t =>
-        t.wrote.map(x => Part.block("me")(Part.text(x))).toList ++ t.said.map(x => Part.block("bot")(Part.text(x))))
+        t.wrote.map(x => Part.block("me")(withLinks(x)*)).toList ++ t.said.map(x => Part.block("bot")(withLinks(x)*)))
     val pending = s.sending.toList.flatMap(x =>
       List(Part.block("me-sending")(Part.text(x)), Part.block("bot-typing")(Part.text("…"))))
     List(Part.block("head")(Part.block("avatar")(Part.text("O")),
