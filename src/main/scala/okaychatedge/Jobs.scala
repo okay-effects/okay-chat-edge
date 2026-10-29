@@ -41,8 +41,11 @@ object Jobs:
     "шукаю", "знайди", "покажи", "потрібна", "роботу", "робота", "вакансії", "вакансію", "вакансія", "szukam",
     "znajdź", "pokaż", "pracy", "praca", "pracę", "oferty", "oferta", "ofert", "find", "show", "me", "a", "an", "the",
     "job", "jobs", "vacancy", "vacancies", "work", "looking", "for", "need", "want", "i", "im", "в", "во", "на", "по",
-    "для", "и", "или", "у", "з", "із", "w", "we", "na", "dla", "i", "lub", "in", "at", "or", "and", "as", "как",
-    "разработчиком", "специалистом", "developer", "engineer")
+    "для", "и", "или", "у", "з", "із", "w", "we", "na", "dla", "i", "lub", "in", "at", "or", "and", "as", "как")
+  /** a role's general word: dropped beside a more telling one («scala разработчиком» → scala), kept alone
+   * («вакансии engineer») */
+  private val general = Set("разработчиком", "разработчик", "специалистом", "специалист", "розробником",
+    "developer", "engineer", "programista", "programistą", "inżynier")
   private val remoteWords = Set("удалённо", "удаленно", "удалёнка", "удаленка", "удалённую", "удаленную",
     "дистанционно",
     "віддалено", "дистанційно", "zdalnie", "zdalna", "zdalną", "remote", "remotely")
@@ -75,7 +78,8 @@ object Jobs:
     val place = ws.flatMap(w => places.collectFirst { case (stems, p) if stems.exists(w.startsWith) => (w, p) })
     val remote = ws.exists(remoteWords)
     val left = ws.filterNot(w => asking(w) || remoteWords(w) || place.exists(_._1 == w))
-    (left, place.headOption.map(_._2), remote)
+    val telling = left.filterNot(general)
+    (if telling.nonEmpty then telling else left, place.headOption.map(_._2), remote)
 
   /** the words to search by: the Latin ones as written; with none, the rest put into English by the model */
   def ask(text: String, at: Long): Option[JobAsk] ! Cloud =

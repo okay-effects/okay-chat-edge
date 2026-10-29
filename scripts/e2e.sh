@@ -80,6 +80,7 @@ check "…the city asked as Workable reads it" "$(grep '"jobs"' /tmp/okay-chat-e
   '"location":"Wrocław","query":"scala"'
 say jobs2 'szukam pracy scala zdalnie' > /dev/null
 check "Polish, remote" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" '"workplace":"remote"'
+check "a role's general word alone is the search" "$(say jobs6 'вакансии engineer, Poland')" 'по «engineer», Poland'
 check "none found: another word suggested" "$(say jobs3 'вакансии cobol, Kraków')" 'по «cobol», Kraków вакансий не нашёл'
 check "an offer of work is not a job search" "$(say jobs5 'могу работать сантехником, Вроцлав')" 'записал предложение'
 # the employers' boards: imported by the cron, searched beside Workable, a remembered search told of the new ones

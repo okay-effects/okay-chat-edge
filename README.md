@@ -248,7 +248,12 @@ vacancies that answer it told as they are imported (a board seen before), and ea
 again in turn, one a tick, for what was posted since; told by the person's door (Telegram's bot, the page's socket).
 «хватит вакансий» / «stop» / «przestań» forgets them.
 
-`scripts/e2e.sh`: 70 checks — a stand-in board that gains a vacancy between two cron ticks (`--test-scheduled`):
+Live (2026-10-29): the cron's ticks `ok`; one measured by `wrangler tail` took 42 ms of CPU and 1 s of wall time —
+above the free plan's nominal 10 ms, and still `ok`; to watch (a board read could be cut to the vacancies of this
+market before they become Scala values). Boards with nothing in Poland, Ukraine or Europe keep nothing — the first
+hour holds few.
+
+`scripts/e2e.sh`: 71 checks — a stand-in board that gains a vacancy between two cron ticks (`--test-scheduled`):
 imported, searched beside Workable, remembered, the new one told, «хватит вакансий».
 
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
