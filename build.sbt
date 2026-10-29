@@ -36,7 +36,7 @@ lazy val edge = crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Full).
     run / baseDirectory := (ThisBuild / baseDirectory).value,
   )
 
-val serverless = "0.1.1-SNAPSHOT"
+val serverless = "0.1.0"
 
 /** what runs at build time — the probe's fit, the measures — linked into bench/tools.js, never into the Worker */
 lazy val tools = (project in file("tools"))
