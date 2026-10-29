@@ -1,0 +1,1297 @@
+{
+  "_": "Authored once by a large model, compiled to vectors at build time, executed with no model call. The RULES, the SLOTS, `require` and `rank` are not here: they are built in okaychat.intent.Catalog (specs/intent-dsl.md) — a rule is a shape and «which slot an intent cannot fire without» and «which intent wins a tie» are decisions, while what is left here is VOCABULARY: what people say, which grows from the live log and is edited without a compiler and merged in by Corpus.intents and by Compile. Regenerate the vectors with: sbt \"runMain okaychat.intent.Compile\"",
+  "intents": [
+    {
+      "name": "offer",
+      "ask": {
+        "ru": "что именно вы предлагаете?",
+        "uk": "що саме ви пропонуєте?",
+        "pl": "co dokładnie oferujesz?",
+        "en": "what exactly do you offer?"
+      },
+      "help": {
+        "ru": {
+          "say": "ремонтирую холодильники, Вроцлав",
+          "does": "запишу, что вы умеете, и приведу тех, кому это нужно"
+        },
+        "uk": {
+          "say": "ремонтую холодильники, Вроцлав",
+          "does": "запишу, що ви вмієте, і приведу тих, кому це потрібно"
+        },
+        "pl": {
+          "say": "naprawiam lodówki, Wrocław",
+          "does": "zapiszę, co umiesz, i przyprowadzę tych, którzy tego szukają"
+        },
+        "en": {
+          "say": "i fix fridges, Wrocław",
+          "does": "I record what you can do and bring you the people who need it"
+        }
+      },
+      "examples": {
+        "ru": [
+          "умею чинить велосипеды",
+          "могу делать ремонт квартир",
+          "предлагаю услуги сантехника",
+          "я разработчик, пишу на скале",
+          "занимаюсь грузоперевозками по городу",
+          "оказываю юридические услуги малому бизнесу",
+          "работаю фотографом, снимаю свадьбы",
+          "сдаю однокомнатную квартиру в центре",
+          "готов взяться за верстку сайтов",
+          "я программист, ищу подработку",
+          "беру заказы на ремонт техники",
+          "свободен для новых проектов",
+          "я розробник, пишу бекенд",
+          "верстаю сайты на заказ",
+          "делаю ремонт под ключ, есть бригада",
+          "перевожу с английского, технические тексты",
+          "готовлю на заказ, домашняя кухня",
+          "сдаю студию в центре, с мебелью",
+          "сдам комнату в трёхкомнатной",
+          "сдаётся дом за городом, надолго"
+        ],
+        "en": [
+          "I can fix bicycles",
+          "I offer plumbing services",
+          "I am a developer, I write backend code",
+          "renting out a one bedroom flat downtown",
+          "I take orders for furniture assembly",
+          "I do apartment renovation",
+          "I build websites to order",
+          "I do full renovations, I have a crew",
+          "I translate from English, technical texts",
+          "I cook to order, home cooking",
+          "I photograph weddings and events",
+          "I teach maths, exam preparation",
+          "I fix laptops and phones",
+          "renting out a studio in the centre, furnished",
+          "a room to let in a three-bedroom",
+          "house outside town for rent, long term"
+        ],
+        "pl": [
+          "naprawiam rowery i hulajnogi",
+          "jestem programistą, piszę backend",
+          "oferuję usługi hydrauliczne",
+          "zajmuję się remontami mieszkań",
+          "wynajmę kawalerkę w centrum",
+          "składam strony internetowe na zamówienie",
+          "robię remonty pod klucz, mam ekipę",
+          "tłumaczę z angielskiego, teksty techniczne",
+          "gotuję na zamówienie, kuchnia domowa",
+          "fotografuję wesela i imprezy",
+          "uczę matematyki, przygotowanie do matury",
+          "wynajmę studio w centrum, umeblowane",
+          "wynajmę pokój w trzypokojowym",
+          "do wynajęcia dom pod miastem, na dłużej"
+        ],
+        "uk": [
+          "вмію ремонтувати велосипеди",
+          "ремонтую пральні машини, беру замовлення",
+          "надаю послуги сантехніка",
+          "здаю однокімнатну квартиру в центрі",
+          "верстаю сайти на замовлення",
+          "роблю ремонт під ключ, є бригада",
+          "перекладаю з англійської, технічні тексти",
+          "готую на замовлення, домашня кухня",
+          "фотографую весілля та події",
+          "викладаю математику, підготовка до НМТ",
+          "здаю студію в центрі, з меблями",
+          "здам кімнату у трикімнатній",
+          "здається будинок за містом, надовго"
+        ]
+      }
+    },
+    {
+      "name": "findwork",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "найди мне работу",
+          "does": "подберу вакансии по вашему резюме и городу — без вопросов, и скажу, по чему искал"
+        },
+        "uk": {
+          "say": "знайди мені роботу",
+          "does": "підберу вакансії за вашим резюме і містом — без питань, і скажу, за чим шукав"
+        },
+        "pl": {
+          "say": "znajdź mi pracę",
+          "does": "dobiorę oferty po Twoim CV i mieście — bez pytań, i powiem, po czym szukałem"
+        },
+        "en": {
+          "say": "find me work",
+          "does": "I match postings to your résumé and city — no questions, and I say what I searched on"
+        }
+      },
+      "examples": {
+        "ru": [
+          "найди мне работу",
+          "подбери мне работу",
+          "что есть для меня",
+          "какая есть работа для меня",
+          "что есть по моему резюме"
+        ],
+        "uk": [
+          "знайди мені роботу",
+          "підбери мені роботу",
+          "що є для мене",
+          "що є за моїм резюме"
+        ],
+        "pl": [
+          "znajdź mi pracę",
+          "dobierz mi pracę",
+          "co jest dla mnie"
+        ],
+        "en": [
+          "find me work",
+          "find me a job",
+          "what is there for me",
+          "match my resume"
+        ]
+      }
+    },
+    {
+      "name": "need",
+      "ask": {
+        "ru": "что именно вам нужно?",
+        "uk": "що саме вам потрібно?",
+        "pl": "czego dokładnie potrzebujesz?",
+        "en": "what exactly do you need?"
+      },
+      "help": {
+        "ru": {
+          "say": "нужен электрик, не работает розетка",
+          "does": "поищу, кто возьмётся, и покажу список"
+        },
+        "uk": {
+          "say": "потрібен електрик, не працює розетка",
+          "does": "пошукаю, хто візьметься, і покажу список"
+        },
+        "pl": {
+          "say": "potrzebny elektryk, nie działa gniazdko",
+          "does": "poszukam, kto się tym zajmie, i pokażę listę"
+        },
+        "en": {
+          "say": "i need an electrician, a socket is dead",
+          "does": "I look for who will take it and show you the list"
+        }
+      },
+      "examples": {
+        "ru": [
+          "нужен сантехник",
+          "нужно починить велосипед",
+          "ищу программиста на проект",
+          "требуется мастер по ремонту холодильников",
+          "хочу найти фотографа на свадьбу",
+          "ищу разработчика бэкенда",
+          "нужна помощь с переездом",
+          "кто может починить стиральную машину?",
+          "посоветуйте юриста по трудовому праву",
+          "снять квартиру на месяц в центре",
+          "кто может починить кран?",
+          "кто чинит стиральные машины?",
+          "к кому обратиться по поводу ремонта?",
+          "посоветуйте мастера по electrical",
+          "у кого заказать уборку квартиры?",
+          "треба полагодити велосипед",
+          "хто може полагодити пральну машину?",
+          "прорвало трубу, нужен мастер срочно",
+          "не работает розетка, вызвать электрика",
+          "потекла крыша, кто приедет посмотреть?",
+          "зламалася розетка, треба електрика",
+          "у меня сломался велосипед",
+          "у меня сломался холодильник",
+          "у меня сломался стиральная машина",
+          "у меня сломался посудомойка",
+          "у меня сломался кран в ванной",
+          "у меня сломался розетка",
+          "у меня сломался ноутбук",
+          "у меня сломался телефон",
+          "у меня сломался экран телефона",
+          "у меня сломался машина",
+          "поломался замок в двери, нужен мастер",
+          "поломался окно, нужен мастер",
+          "поломался крыша, нужен мастер",
+          "поломался котёл, нужен мастер",
+          "поломался телевизор, нужен мастер",
+          "поломался бойлер, нужен мастер",
+          "поломался душевая кабина, нужен мастер",
+          "поломался унитаз, нужен мастер",
+          "не работает батарея отопления",
+          "не работает интернет",
+          "не работает принтер",
+          "не работает кондиционер",
+          "не работает самокат",
+          "не работает часы",
+          "не работает молния на куртке",
+          "не работает каблук",
+          "духовка перестал работать, кто починит?",
+          "микроволновка перестал работать, кто починит?",
+          "пылесос перестал работать, кто починит?",
+          "газовая колонка перестал работать, кто починит?",
+          "ищу квартиру в аренду в центре",
+          "нужна однокомнатная на длительный срок",
+          "сниму комнату недорого, без посредников",
+          "ищу жильё на двоих с сентября",
+          "подскажите, где снять студию в Кракове?",
+          "ищу работу бухгалтером, полная занятость",
+          "хочу найти подработку по выходным",
+          "ищу работу на складе, есть опыт два года",
+          "подыскиваю работу водителем категории C"
+        ],
+        "en": [
+          "I need a plumber",
+          "looking for a backend developer",
+          "who can repair a washing machine?",
+          "I want to rent a flat for a month",
+          "need someone to help me move",
+          "who can fix a leaking tap?",
+          "my bicycle broke",
+          "the fridge stopped working",
+          "the washing machine is broken",
+          "my laptop won't turn on",
+          "the tap is leaking",
+          "the boiler does not work",
+          "my phone screen cracked",
+          "the heating stopped working",
+          "looking for a room to rent from next month",
+          "I need a one bedroom flat long term",
+          "where can I rent a studio in Krakow?",
+          "searching for housing for two from September",
+          "looking for a job as an accountant, full time",
+          "want to find weekend work",
+          "looking for work in a warehouse, two years of experience",
+          "looking for a job as a driver",
+          "looking for a job as a programmer"
+        ],
+        "uk": [
+          "потрібен сантехнік",
+          "шукаю програміста на проєкт",
+          "у мене зламався велосипед",
+          "у мене зламався холодильник",
+          "у мене зламалася пральна машина",
+          "у мене зламався кран у ванній",
+          "у мене зламалася розетка",
+          "у мене зламався ноутбук",
+          "у мене зламався телефон",
+          "не працює машина, потрібен майстер",
+          "не працює замок у дверях, потрібен майстер",
+          "не працює дах, потрібен майстер",
+          "не працює котел, потрібен майстер",
+          "не працює телевізор, потрібен майстер",
+          "не працює бойлер, потрібен майстер",
+          "шукаю квартиру в оренду у Вроцлаві",
+          "хочу зняти однокімнатну на довгий термін",
+          "зніму кімнату недорого, без посередників",
+          "шукаю житло для двох з вересня",
+          "де можна зняти студію у Кракові?",
+          "шукаю роботу бухгалтером, повна зайнятість",
+          "хочу знайти підробіток на вихідні",
+          "шукаю роботу на складі, є досвід два роки",
+          "шукаю вакансію водія категорії C",
+          "шукаю роботу програмістом"
+        ],
+        "pl": [
+          "potrzebuję hydraulika",
+          "szukam programisty do projektu",
+          "trzeba naprawić rower",
+          "zepsuła mi się lodówka, kto pomoże?",
+          "kto może naprawić pralkę?",
+          "pękła rura, kto przyjedzie naprawić?",
+          "zepsuł mi się rower",
+          "zepsuł mi się lodówka",
+          "zepsuł mi się pralka",
+          "zepsuł mi się kran w łazience",
+          "zepsuł mi się gniazdko",
+          "zepsuł mi się laptop",
+          "zepsuł mi się telefon",
+          "nie działa samochód, potrzebny fachowiec",
+          "nie działa zamek w drzwiach, potrzebny fachowiec",
+          "nie działa dach, potrzebny fachowiec",
+          "nie działa piec, potrzebny fachowiec",
+          "nie działa telewizor, potrzebny fachowiec",
+          "nie działa bojler, potrzebny fachowiec",
+          "szukam mieszkania do wynajęcia we Wrocławiu",
+          "chcę wynająć kawalerkę na rok",
+          "poszukuję pokoju od zaraz, bez pośredników",
+          "szukam mieszkania dla dwojga od września",
+          "gdzie mogę wynająć studio w Krakowie?",
+          "szukam pracy jako księgowa, pełny etat",
+          "chcę znaleźć pracę dorywczą w weekendy",
+          "szukam pracy w magazynie, mam dwa lata doświadczenia",
+          "szukam pracy jako kierowca kategorii C",
+          "szukam pracy jako programista"
+        ]
+      }
+    },
+    {
+      "name": "ask_candidates",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "спроси 1 2",
+          "does": "напишу тем, кого вы выбрали из показанного списка; «спроси всех» — всем сразу"
+        },
+        "uk": {
+          "say": "спитай 1 2",
+          "does": "напишу тим, кого ви обрали зі списку; «спитай усіх» — усім одразу"
+        },
+        "pl": {
+          "say": "zapytaj 1 2",
+          "does": "napiszę do tych, których wybrałeś z listy; „zapytaj wszystkich” — do wszystkich"
+        },
+        "en": {
+          "say": "ask 1 2",
+          "does": "I write to the ones you picked from the list; \"ask everyone\" writes to all of them"
+        }
+      },
+      "examples": {
+        "ru": [
+          "спроси первого",
+          "спроси 1 и 3",
+          "спроси всех",
+          "свяжись с этими кандидатами",
+          "напиши второму и третьему"
+        ],
+        "en": [
+          "ask number 1",
+          "ask all of them",
+          "contact the first two"
+        ]
+      }
+    },
+    {
+      "name": "telegram",
+      "_": "Asking to connect Telegram. A bot cannot message a phone number, so the person carries a link TO the bot.",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "телеграм",
+          "does": "дам ссылку на бота, чтобы отвечать вам там же, где вы читаете"
+        },
+        "uk": {
+          "say": "телеграм",
+          "does": "дам посилання на бота, щоб відповідати вам там, де ви читаєте"
+        },
+        "pl": {
+          "say": "telegram",
+          "does": "dam link do bota, żeby odpowiadać tam, gdzie czytasz"
+        },
+        "en": {
+          "say": "telegram",
+          "does": "I give you the bot's link so I can answer where you read"
+        }
+      },
+      "examples": {}
+    },
+    {
+      "name": "register",
+      "_": "Asking to be registered, without giving an address yet.",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "зарегистрируй",
+          "does": "попрошу адрес и пришлю код — без этого я не могу вас ни с кем свести"
+        },
+        "uk": {
+          "say": "зареєструй",
+          "does": "попрошу адресу і надішлю код — без цього я не можу вас ні з ким звести"
+        },
+        "pl": {
+          "say": "zarejestruj",
+          "does": "poproszę o adres i wyślę kod — bez tego nie mogę cię z nikim skontaktować"
+        },
+        "en": {
+          "say": "register",
+          "does": "I ask for an address and send a code; without it I cannot introduce you to anybody"
+        }
+      },
+      "examples": {}
+    },
+    {
+      "name": "code",
+      "_": "The one-time code, typed back. Rules only and exact-length: a fuzzy match on a number is a security hole, not a convenience.",
+      "ask": {
+        "ru": "введите шестизначный код из письма",
+        "uk": "введіть шестизначний код з листа",
+        "pl": "wpisz sześciocyfrowy kod z e-maila",
+        "en": "type the six-digit code from the email"
+      },
+      "semantic": false,
+      "internal": "the six-digit code typed back — part of registering, not a thing to ask for",
+      "examples": {}
+    },
+    {
+      "name": "accept",
+      "ask": {
+        "ru": "назовите номер сделки: берусь <N>",
+        "uk": "назвіть номер угоди: берусь <N>",
+        "pl": "podaj numer transakcji: przyjmuję <N>",
+        "en": "name the deal number: accept <N>"
+      },
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "берусь 3",
+          "does": "приму сделку номер 3 — так вы отвечаете тому, кто вас нашёл"
+        },
+        "uk": {
+          "say": "берусь 3",
+          "does": "прийму угоду номер 3 — так ви відповідаєте тому, хто вас знайшов"
+        },
+        "pl": {
+          "say": "przyjmuję 3",
+          "does": "przyjmę transakcję numer 3 — tak odpowiadasz temu, kto cię znalazł"
+        },
+        "en": {
+          "say": "accept 3",
+          "does": "I take deal number 3 — this is how you answer somebody who found you"
+        }
+      },
+      "examples": {
+        "ru": [
+          "берусь за 2",
+          "беру заказ 1",
+          "согласен на сделку 3",
+          "принимаю заявку номер 1"
+        ],
+        "en": [
+          "accept 2",
+          "I accept deal 1"
+        ]
+      }
+    },
+    {
+      "name": "decline",
+      "ask": {
+        "ru": "назовите номер сделки: отказываюсь <N>",
+        "uk": "назвіть номер угоди: відмовляюсь <N>",
+        "pl": "podaj numer transakcji: odmawiam <N>",
+        "en": "name the deal number: decline <N>"
+      },
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "отказываюсь 3",
+          "does": "откажусь от сделки номер 3, и человек сразу это увидит"
+        },
+        "uk": {
+          "say": "відмовляюсь 3",
+          "does": "відмовлюсь від угоди номер 3, і людина одразу це побачить"
+        },
+        "pl": {
+          "say": "odmawiam 3",
+          "does": "odmówię transakcji numer 3, a osoba od razu to zobaczy"
+        },
+        "en": {
+          "say": "decline 3",
+          "does": "I decline deal number 3 and the other person sees it at once"
+        }
+      },
+      "examples": {
+        "ru": [
+          "отказываюсь от 2",
+          "не берусь за заказ 1",
+          "отказ по сделке 3"
+        ],
+        "en": [
+          "decline 2",
+          "I decline deal 1"
+        ]
+      }
+    },
+    {
+      "name": "withdraw",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "удали заявку 2",
+          "does": "сниму объявление с доски; организатору — «отменяем субботу», и событие уходит из афиши"
+        },
+        "uk": {
+          "say": "видали заявку 2",
+          "does": "зніму оголошення з дошки; організатору — «скасовуємо суботу», і подія піде з афіші"
+        },
+        "pl": {
+          "say": "usuń zgłoszenie 2",
+          "does": "zdejmę ogłoszenie z tablicy; organizatorowi — „odwołujemy sobotę”, i wydarzenie znika z afisza"
+        },
+        "en": {
+          "say": "delete request 2",
+          "does": "I take a listing down; an organiser can say \"cancel Saturday\" and the event leaves the board"
+        }
+      },
+      "examples": {
+        "ru": [
+          "очисть мой профиль",
+          "удали мой профиль",
+          "сотри все мои данные"
+        ],
+        "uk": [
+          "очисти мій профіль"
+        ],
+        "pl": [
+          "usuń mój profil"
+        ],
+        "en": [
+          "delete my profile"
+        ]
+      }
+    },
+    {
+      "name": "cancel",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "отмена",
+          "does": "брошу начатый разговор и начнём заново — если я сбился или вы передумали"
+        },
+        "uk": {
+          "say": "скасувати",
+          "does": "покину початий діалог і почнемо спочатку"
+        },
+        "pl": {
+          "say": "anuluj",
+          "does": "porzucę zaczętą rozmowę i zaczniemy od nowa"
+        },
+        "en": {
+          "say": "cancel",
+          "does": "I drop the conversation we started and we begin again"
+        }
+      },
+      "examples": {
+        "ru": [
+          "отмена",
+          "начать заново",
+          "стоп, начнём сначала"
+        ],
+        "uk": [
+          "скасувати",
+          "почати спочатку"
+        ],
+        "pl": [
+          "anuluj",
+          "zacznijmy od nowa"
+        ],
+        "en": [
+          "cancel",
+          "start over",
+          "never mind"
+        ]
+      }
+    },
+    {
+      "name": "remember",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "запомни",
+          "does": "сохраню ваш запрос и сообщу, когда появится подходящий человек"
+        },
+        "uk": {
+          "say": "запам'ятай",
+          "does": "збережу ваш запит і повідомлю, коли з'явиться відповідна людина"
+        },
+        "pl": {
+          "say": "zapamiętaj",
+          "does": "zapiszę twoje zgłoszenie i dam znać, gdy pojawi się ktoś odpowiedni"
+        },
+        "en": {
+          "say": "remember",
+          "does": "I keep your request and tell you when somebody suitable appears"
+        }
+      },
+      "examples": {
+        "ru": [
+          "запомни",
+          "запомни заявку"
+        ],
+        "uk": [
+          "запам'ятай",
+          "збережи заявку"
+        ],
+        "pl": [
+          "zapamiętaj",
+          "zapisz zgłoszenie"
+        ],
+        "en": [
+          "remember",
+          "save this"
+        ]
+      }
+    },
+    {
+      "name": "next",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "следующий",
+          "does": "покажу следующего из того, что нашлось"
+        },
+        "uk": {
+          "say": "наступний",
+          "does": "покажу наступного з того, що знайшлося"
+        },
+        "pl": {
+          "say": "następny",
+          "does": "pokażę następnego z tego, co się znalazło"
+        },
+        "en": {
+          "say": "next",
+          "does": "I show the next of what was found"
+        }
+      },
+      "examples": {
+        "ru": [
+          "следующий",
+          "ещё",
+          "покажи ещё",
+          "дальше",
+          "другого"
+        ],
+        "uk": [
+          "наступний",
+          "ще",
+          "покажи ще",
+          "далі",
+          "іншого"
+        ],
+        "pl": [
+          "następny",
+          "jeszcze",
+          "pokaż następny",
+          "dalej",
+          "inny"
+        ],
+        "en": [
+          "next",
+          "more",
+          "show next",
+          "another",
+          "next one"
+        ]
+      }
+    },
+    {
+      "name": "source",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "возьмите данные с https://…",
+          "does": "прочитаю сайт и скажу, можно ли брать оттуда данные"
+        },
+        "uk": {
+          "say": "візьміть дані з https://…",
+          "does": "прочитаю сайт і скажу, чи можна брати звідти дані"
+        },
+        "pl": {
+          "say": "weź dane z https://…",
+          "does": "przeczytam stronę i powiem, czy da się stamtąd brać dane"
+        },
+        "en": {
+          "say": "take data from https://…",
+          "does": "I read the site and say whether data can be taken from it"
+        }
+      },
+      "examples": {
+        "ru": [
+          "возьмите данные отсюда",
+          "добавьте источник",
+          "подключите сайт",
+          "проверьте сайт",
+          "возьми данные с этого сайта",
+          "добавь источник данных"
+        ],
+        "uk": [
+          "візьміть дані звідси",
+          "додайте джерело",
+          "підключіть сайт",
+          "перевірте сайт",
+          "візьми дані з цього сайту"
+        ],
+        "pl": [
+          "weź dane stąd",
+          "dodaj źródło",
+          "podłącz stronę",
+          "sprawdź stronę",
+          "weź dane z tej strony"
+        ],
+        "en": [
+          "take data from here",
+          "add a source",
+          "connect the site",
+          "check the site",
+          "import data from this page"
+        ]
+      }
+    },
+    {
+      "name": "resume",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "импортируй резюме / моё резюме",
+          "does": "прочитаю ваше старое резюме или спрошу по пунктам, и соберу новое; покажу, что получилось, и пришлю файлом, если попросите"
+        },
+        "uk": {
+          "say": "імпортуй резюме / моє резюме",
+          "does": "прочитаю ваше старе резюме і зберу з нього нове; покажу, що вийшло"
+        },
+        "pl": {
+          "say": "zaimportuj CV / moje CV",
+          "does": "przeczytam Twoje stare CV i złożę z niego nowe; pokażę, co wyszło"
+        },
+        "en": {
+          "say": "import my résumé / my résumé",
+          "does": "I read your old résumé and build a new one from it; I show the result"
+        }
+      },
+      "examples": {
+        "ru": [
+          "импортируй резюме",
+          "загрузи моё старое резюме",
+          "вот моё резюме",
+          "моё резюме",
+          "покажи резюме",
+          "продолжим резюме",
+          "давай сделаем резюме",
+          "составь резюме",
+          "пришли резюме файлом",
+          "скачать резюме",
+          "поработаем над моим резюме",
+          "я отправил тебе свои старые резюме",
+          "займёмся резюме",
+          "соедини всё вместе и покажи что получилось",
+          "объедини все резюме",
+          "причеши резюме",
+          "улучши моё резюме",
+          "перепиши резюме получше"
+        ],
+        "uk": [
+          "імпортуй резюме",
+          "завантаж моє старе резюме",
+          "ось моє резюме",
+          "моє резюме",
+          "покажи резюме",
+          "продовжимо резюме",
+          "давай зробимо резюме",
+          "надішли резюме файлом",
+          "з'єднай усе разом",
+          "причепури резюме"
+        ],
+        "pl": [
+          "zaimportuj cv",
+          "wczytaj moje stare cv",
+          "oto moje cv",
+          "moje cv",
+          "pokaż cv",
+          "kontynuujmy cv",
+          "zróbmy CV",
+          "wyślij CV plikiem",
+          "połącz wszystko razem",
+          "popraw moje CV"
+        ],
+        "en": [
+          "import my résumé",
+          "load my old cv",
+          "here is my resume",
+          "my résumé",
+          "show my cv",
+          "continue the résumé",
+          "let's make a resume",
+          "send my resume as a file",
+          "merge them all and show me",
+          "polish my resume"
+        ]
+      }
+    },
+    {
+      "name": "requests",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "мои заявки",
+          "does": "покажу, что вы ИЩЕТЕ и сколько подходящих есть сейчас; «по заявке 1» — по одной"
+        },
+        "uk": {
+          "say": "мої заявки",
+          "does": "покажу, що ви ШУКАЄТЕ і скільки відповідних є зараз; «за заявкою 1» — по одній"
+        },
+        "pl": {
+          "say": "moje zgłoszenia",
+          "does": "pokażę, czego SZUKASZ i ilu pasujących jest teraz; „zgłoszenie 1” — po jednym"
+        },
+        "en": {
+          "say": "my requests",
+          "does": "I show what you are LOOKING FOR and how many match now; \"request 1\" for one of them"
+        }
+      },
+      "examples": {
+        "ru": [
+          "мои заявки",
+          "что я искал?",
+          "по заявке 1",
+          "посмотри что там по моему вопросу"
+        ],
+        "uk": [
+          "мої заявки",
+          "за заявкою 1",
+          "подивись що там по моєму питанню"
+        ],
+        "pl": [
+          "moje zgłoszenia",
+          "zgłoszenie 1",
+          "sprawdź co w mojej sprawie"
+        ],
+        "en": [
+          "my requests",
+          "request 1",
+          "any news on my question"
+        ]
+      }
+    },
+    {
+      "name": "listings",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "мои предложения",
+          "does": "покажу, что вы ПРЕДЛАГАЕТЕ — услуги, жильё, объявленные события"
+        },
+        "uk": {
+          "say": "мої пропозиції",
+          "does": "покажу, що ви ПРОПОНУЄТЕ — послуги, житло, оголошені події"
+        },
+        "pl": {
+          "say": "moje oferty",
+          "does": "pokażę, co OFERUJESZ — usługi, mieszkanie, ogłoszone wydarzenia"
+        },
+        "en": {
+          "say": "my offers",
+          "does": "I show what you are OFFERING: services, a place to rent, events you announced"
+        }
+      },
+      "examples": {
+        "ru": [
+          "мои предложения",
+          "мои объявления",
+          "что я предлагаю",
+          "что я объявил"
+        ],
+        "uk": [
+          "мої пропозиції",
+          "мої оголошення",
+          "що я пропоную"
+        ],
+        "pl": [
+          "moje oferty",
+          "moje ogłoszenia",
+          "co oferuję"
+        ],
+        "en": [
+          "my offers",
+          "my listings",
+          "what did i announce"
+        ]
+      }
+    },
+    {
+      "name": "deals",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "мои сделки",
+          "does": "покажу, о чём вы уже договариваетесь и на какой это стадии"
+        },
+        "uk": {
+          "say": "мої угоди",
+          "does": "покажу, про що ви вже домовляєтесь і на якій це стадії"
+        },
+        "pl": {
+          "say": "moje transakcje",
+          "does": "pokażę, o czym już rozmawiasz i na jakim to etapie"
+        },
+        "en": {
+          "say": "my deals",
+          "does": "I show what you are already arranging and where it stands"
+        }
+      },
+      "examples": {
+        "ru": [
+          "мои сделки",
+          "покажи мои заказы"
+        ],
+        "en": [
+          "show my deals",
+          "what deals do I have?"
+        ]
+      }
+    },
+    {
+      "name": "profile",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "мой профиль",
+          "does": "прочитаю всё, что о вас записано — что предлагаете, что ищете, город, связь"
+        },
+        "uk": {
+          "say": "мій профіль",
+          "does": "прочитаю все, що про вас записано — що пропонуєте, що шукаєте, місто, зв'язок"
+        },
+        "pl": {
+          "say": "mój profil",
+          "does": "przeczytam wszystko, co mam o tobie — co oferujesz, czego szukasz, miasto, kontakt"
+        },
+        "en": {
+          "say": "my profile",
+          "does": "I read out everything recorded about you: what you offer, what you need, your city, how to reach you"
+        }
+      },
+      "examples": {
+        "ru": [
+          "мой профиль",
+          "что вы обо мне знаете?",
+          "покажи мои данные"
+        ],
+        "en": [
+          "show my profile",
+          "what do you know about me?"
+        ],
+        "pl": [
+          "mój profil",
+          "co o mnie wiecie?"
+        ],
+        "uk": [
+          "мій профіль",
+          "мій профіль, що ви про мене знаєте?"
+        ]
+      }
+    },
+    {
+      "name": "notebook",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "мои данные",
+          "does": "покажу всё, что о вас записано, с номерами — и что из этого показано всем"
+        },
+        "uk": {
+          "say": "мої дані",
+          "does": "покажу все, що про вас записано, з номерами — і що з цього показано всім"
+        },
+        "pl": {
+          "say": "moje dane",
+          "does": "pokażę wszystko, co o Tobie zapisano, z numerami — i co z tego jest pokazane"
+        },
+        "en": {
+          "say": "my data",
+          "does": "I show everything I hold about you, numbered — and which of it is public"
+        }
+      },
+      "examples": {
+        "ru": [
+          "мои данные",
+          "что ты обо мне помнишь",
+          "что обо мне записано",
+          "записная книжка"
+        ],
+        "uk": [
+          "мої дані",
+          "що ти про мене пам'ятаєш",
+          "що про мене записано"
+        ],
+        "pl": [
+          "moje dane",
+          "co o mnie pamiętasz",
+          "co o mnie zapisano"
+        ],
+        "en": [
+          "my data",
+          "what do you know about me",
+          "my notebook"
+        ]
+      }
+    },
+    {
+      "name": "shown",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "что обо мне видно",
+          "does": "покажу только то, что видно всем — как это видит посторонний"
+        },
+        "uk": {
+          "say": "що про мене видно",
+          "does": "покажу тільки те, що видно всім — як це бачить сторонній"
+        },
+        "pl": {
+          "say": "co o mnie widać",
+          "does": "pokażę tylko to, co widać wszystkim — tak, jak widzi to obcy"
+        },
+        "en": {
+          "say": "what do you show about me",
+          "does": "I show only what is public — as a stranger sees it"
+        }
+      },
+      "examples": {
+        "ru": [
+          "что обо мне видно",
+          "что ты обо мне показываешь",
+          "что видно всем",
+          "что видят другие"
+        ],
+        "uk": [
+          "що про мене видно",
+          "що ти про мене показуєш",
+          "що бачать інші"
+        ],
+        "pl": [
+          "co o mnie widać",
+          "co pokazujesz o mnie",
+          "co jest pokazane"
+        ],
+        "en": [
+          "what do you show about me",
+          "what is shown about me",
+          "what is public about me"
+        ]
+      }
+    },
+    {
+      "name": "flow_start",
+      "ask": {
+        "ru": "какой сценарий запустить?",
+        "uk": "який сценарій запустити?",
+        "pl": "który scenariusz uruchomić?",
+        "en": "which scenario should I start?"
+      },
+      "semantic": false,
+      "internal": "scenarios: the help names them together, with the ones this deployment actually carries",
+      "examples": {
+        "ru": [
+          "сценарий escrow-sale seller=a@x.com buyer=b@y.com",
+          "запусти сценарий deal seeker=a@x.com provider=b@y.com"
+        ],
+        "en": [
+          "start scenario escrow-sale seller=a@x.com buyer=b@y.com"
+        ]
+      }
+    },
+    {
+      "name": "flow_step",
+      "ask": {
+        "ru": "формат: шаг <номер флоу> <переход>",
+        "uk": "формат: крок <номер флоу> <перехід>",
+        "pl": "format: krok <numer przepływu> <przejście>",
+        "en": "format: step <flow number> <transition>"
+      },
+      "semantic": false,
+      "internal": "scenarios: the help names them together, with the ones this deployment actually carries",
+      "examples": {
+        "ru": [
+          "шаг 1 pay",
+          "шаг 2 ship"
+        ],
+        "en": [
+          "step 1 confirm"
+        ]
+      }
+    },
+    {
+      "name": "flow_state",
+      "ask": {
+        "ru": "формат: флоу <номер>",
+        "uk": "формат: флоу <номер>",
+        "pl": "format: przepływ <numer>",
+        "en": "format: flow <number>"
+      },
+      "semantic": false,
+      "internal": "scenarios: the help names them together, with the ones this deployment actually carries",
+      "examples": {
+        "ru": [
+          "флоу 1",
+          "покажи состояние флоу 2"
+        ],
+        "en": [
+          "flow 1 state"
+        ]
+      }
+    },
+    {
+      "name": "contact",
+      "_": "An email address the person volunteered, anywhere in the message. Ordered AFTER the flow commands on purpose: those carry two addresses and are not a registration.",
+      "semantic": false,
+      "internal": "an address noticed anywhere in a message; nobody types it as a command",
+      "examples": {}
+    },
+    {
+      "name": "help",
+      "semantic": false,
+      "help": {
+        "ru": {
+          "say": "помощь",
+          "does": "покажу этот список — он собран из того, что я на самом деле умею"
+        },
+        "uk": {
+          "say": "допомога",
+          "does": "покажу цей список — він зібраний з того, що я справді вмію"
+        },
+        "pl": {
+          "say": "pomoc",
+          "does": "pokażę tę listę — jest zebrana z tego, co naprawdę potrafię"
+        },
+        "en": {
+          "say": "help",
+          "does": "I show this list, which is built from what I can actually do"
+        }
+      },
+      "examples": {
+        "ru": [
+          "помощь",
+          "что ты умеешь?",
+          "как этим пользоваться?"
+        ],
+        "en": [
+          "help",
+          "what can you do?"
+        ],
+        "pl": [
+          "co potrafisz?",
+          "pomoc"
+        ],
+        "uk": [
+          "що ти вмієш?",
+          "допомога"
+        ]
+      }
+    },
+    {
+      "name": "whatson",
+      "semantic": true,
+      "description": "asking what is on — an evening, a weekend, a city (specs/culture.md)",
+      "help": {
+        "ru": {
+          "say": "что интересного сегодня вечером",
+          "does": "покажу, что происходит в вашем городе — со ссылками; «на выходных», «в Кракове» тоже понимаю"
+        },
+        "uk": {
+          "say": "що цікавого сьогодні ввечері",
+          "does": "покажу, що відбувається у вашому місті — з посиланнями; «на вихідних», «у Кракові» теж розумію"
+        },
+        "pl": {
+          "say": "co ciekawego dziś wieczorem",
+          "does": "pokażę, co się dzieje w twoim mieście — z linkami; „w weekend”, „w Krakowie” też rozumiem"
+        },
+        "en": {
+          "say": "what's on tonight",
+          "does": "I show what is happening in your city, with links; \"this weekend\" and \"in Kraków\" work too"
+        }
+      },
+      "_why": "READ BY MEANING, not only by pattern. It sat among the commands — accept, decline, withdraw — which are out of the vector layer for a reason that does not apply to it: a fuzzy `decline` closes a real deal, and a fuzzy `whatson` costs one wrong answer. Live 2026-09-11: «какие концерты будут» fired and «Какие будут концерты?» did not, the same words in another order, and the second opened a SERVICE intake asking for a city and an urgency.",
+      "examples": [
+        "какие будут концерты?",
+        "какие концерты будут на выходных",
+        "концерты?",
+        "будут ли концерты на этой неделе",
+        "а что есть из концертов",
+        "что интересного намечается",
+        "куда можно сходить вечером",
+        "какие события в городе",
+        "есть что-нибудь интересное на выходных",
+        "что происходит в городе на этой неделе",
+        "афиша на выходные",
+        "какие мероприятия будут",
+        "что можно посмотреть сегодня",
+        "які будуть концерти?",
+        "що цікавого буде на вихідних",
+        "куди можна піти ввечері",
+        "які події у місті",
+        "афіша на вихідні",
+        "jakie będą koncerty?",
+        "co ciekawego się dzieje w weekend",
+        "gdzie można pójść wieczorem",
+        "jakie wydarzenia są w mieście",
+        "what concerts are on?",
+        "anything interesting this weekend",
+        "where can I go tonight",
+        "what events are there in the city",
+        "any gigs coming up"
+      ]
+    },
+    {
+      "name": "other",
+      "_": "The REJECT class. A nearest-neighbour classifier over an open world has nowhere to put a message that is not a request at all, so it puts it in the nearest request. Giving small talk its own examples gives that mass somewhere to land, and firing this intent means the service answers instead of writing to the marketplace.",
+      "semantic": true,
+      "internal": "the reject class: small talk, so that it is not written to the marketplace",
+      "examples": {
+        "ru": [
+          "привет, как дела?",
+          "спасибо большое, вы очень помогли",
+          "а сколько сейчас времени?",
+          "расскажи анекдот",
+          "что ты вообще такое?",
+          "хорошая погода сегодня",
+          "дякую, дуже допомогли",
+          "вчера весь вечер лил дождь и было холодно",
+          "сегодня весь день шёл дождь",
+          "что-то интернет медленно работает",
+          "вчера был очень тяжёлый день",
+          "в этом году зима поздняя",
+          "я вообще из Харькова",
+          "не люблю зиму",
+          "цены опять выросли",
+          "у меня завтра день рождения",
+          "интересно, как это всё придумали",
+          "просто смотрю, что тут"
+        ],
+        "uk": [
+          "привіт, як справи?",
+          "яка сьогодні погода?",
+          "розкажи щось цікаве",
+          "сьогодні цілий день дощ",
+          "щось інтернет повільно працює",
+          "вчора був дуже важкий день",
+          "цього року зима пізня",
+          "я взагалі з Харкова",
+          "не люблю зиму",
+          "ціни знову зросли",
+          "у мене завтра день народження",
+          "цікаво, як це все придумали",
+          "просто дивлюся, що тут"
+        ],
+        "pl": [
+          "cześć, co słychać?",
+          "dziękuję bardzo za pomoc",
+          "jaka dziś pogoda?",
+          "opowiedz dowcip",
+          "cały dzień padało",
+          "coś internet wolno działa",
+          "wczoraj był bardzo ciężki dzień",
+          "w tym roku zima późna",
+          "jestem w ogóle z Krakowa",
+          "nie lubię zimy",
+          "ceny znowu wzrosły",
+          "mam jutro urodziny",
+          "ciekawe, jak to wymyślili",
+          "po prostu oglądam, co tu jest"
+        ],
+        "en": [
+          "hi, how are you?",
+          "thanks a lot, that helped",
+          "what is the weather like today?",
+          "tell me a joke",
+          "it rained all day today",
+          "the internet is slow for some reason",
+          "yesterday was a very long day",
+          "winter is late this year",
+          "I am from Kharkiv originally",
+          "I do not like winter",
+          "prices went up again",
+          "it is my birthday tomorrow",
+          "I wonder how they came up with this",
+          "just curious what this is"
+        ]
+      }
+    }
+  ]
+}

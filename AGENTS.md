@@ -12,5 +12,6 @@ Read before anything else, then `README.md` and `specs/plan.md`.
   program — the frontend is okay-ui / okay-faces, the user's rule); `sbt toolsJs` the build-time tools (`bench/tools.js`: the
   probe's fit, the measures — never in the Worker). `node bench/bench.mjs`, `node bench/rules.mjs`;
   `npx wrangler dev` in `worker/`.
-- Local only: no remote, nothing published (okay-chat is commercial). Lines at most 120 wide. Commits: plain
+- Public on GitHub (okay-effects/okay-chat-edge, the owner's decision 2026-10-29), okay-chat's data in `data/`
+  included. Lines at most 120 wide. Commits: plain
   messages, no attribution trailers.

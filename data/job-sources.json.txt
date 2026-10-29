@@ -1,0 +1,1253 @@
+{
+  "_": "Where open work comes from (specs/jobs.md). A row is an employer's OWN board on an applicant-tracking system, or an ATS's own cross-account search. `kind` says which reader understands it: `greenhouse`, `ashby` and `workable` read one employer's board, `workable-search` reads every Workable account at once for one location. `where` is what the harvest SAW on that board on 2026-09-07 and is a hint for pruning, not a filter — an employer who hired in Kraków in September may hire in Wrocław in October. The employer rows were found by tools/harvest-ats.py: Common Crawl for the tokens, then one call per board. Adding an employer is a line and no compile.",
+  "sources": [
+    {
+      "name": "workable",
+      "kind": "workable-search",
+      "where": "PL",
+      "url": "https://jobs.workable.com/api/v1/jobs?location=Poland"
+    },
+    {
+      "name": "workable",
+      "kind": "workable-search",
+      "where": "UA",
+      "url": "https://jobs.workable.com/api/v1/jobs?location=Ukraine"
+    },
+    {
+      "name": "skelar",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/skelar"
+    },
+    {
+      "name": "bjakcareer",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/bjakcareer"
+    },
+    {
+      "name": "xebiacee",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/xebiacee/jobs"
+    },
+    {
+      "name": "capco",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/capco/jobs"
+    },
+    {
+      "name": "solidgate",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/solidgate"
+    },
+    {
+      "name": "nord-security",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/nord-security"
+    },
+    {
+      "name": "infuse",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/infuse/jobs"
+    },
+    {
+      "name": "wppmedia",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wppmedia/jobs"
+    },
+    {
+      "name": "iceye",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/iceye"
+    },
+    {
+      "name": "kissmyapps",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/kissmyapps"
+    },
+    {
+      "name": "boxinc",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/boxinc/jobs"
+    },
+    {
+      "name": "preply",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/preply"
+    },
+    {
+      "name": "airhelp",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/airhelp?details=true"
+    },
+    {
+      "name": "affirm",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/affirm/jobs"
+    },
+    {
+      "name": "veeamsoftware",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/veeamsoftware/jobs"
+    },
+    {
+      "name": "asana",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/asana/jobs"
+    },
+    {
+      "name": "tripadvisor",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tripadvisor/jobs"
+    },
+    {
+      "name": "patrianna",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/patrianna"
+    },
+    {
+      "name": "alarmcom",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/alarmcom/jobs"
+    },
+    {
+      "name": "hostinger",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/hostinger"
+    },
+    {
+      "name": "obrio",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/obrio"
+    },
+    {
+      "name": "ai-acquisition",
+      "kind": "workable",
+      "where": "PL UA",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/ai-acquisition?details=true"
+    },
+    {
+      "name": "point72",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/point72/jobs"
+    },
+    {
+      "name": "ruby-labs",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ruby-labs"
+    },
+    {
+      "name": "sensor-tower",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/sensor-tower"
+    },
+    {
+      "name": "moniepoint",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/moniepoint/jobs"
+    },
+    {
+      "name": "speechify",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/speechify/jobs"
+    },
+    {
+      "name": "vmlenterprisesolutions",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/vmlenterprisesolutions/jobs"
+    },
+    {
+      "name": "ispeedtolead",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ispeedtolead"
+    },
+    {
+      "name": "addepar1",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/addepar1/jobs"
+    },
+    {
+      "name": "awin",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/awin/jobs"
+    },
+    {
+      "name": "elevenlabs",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/elevenlabs"
+    },
+    {
+      "name": "singu",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/singu"
+    },
+    {
+      "name": "swarmer",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/swarmer"
+    },
+    {
+      "name": "anyone-ai",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/anyone-ai"
+    },
+    {
+      "name": "lilt-production",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/lilt-production"
+    },
+    {
+      "name": "castaigroupinc",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/castaigroupinc/jobs"
+    },
+    {
+      "name": "hrtechx",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/hrtechx/jobs"
+    },
+    {
+      "name": "privateequityinsights",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/privateequityinsights/jobs"
+    },
+    {
+      "name": "onhires",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/onhires"
+    },
+    {
+      "name": "snowflake",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/snowflake"
+    },
+    {
+      "name": "appsflyer",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/appsflyer/jobs"
+    },
+    {
+      "name": "picoquantitativetrading",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/picoquantitativetrading/jobs"
+    },
+    {
+      "name": "psibufet",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/psibufet/jobs"
+    },
+    {
+      "name": "tripledotstudios",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tripledotstudios/jobs"
+    },
+    {
+      "name": "wargamingen",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wargamingen/jobs"
+    },
+    {
+      "name": "auctane",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/auctane/jobs"
+    },
+    {
+      "name": "sharkninjaoperatingllc",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sharkninjaoperatingllc/jobs"
+    },
+    {
+      "name": "workatbackbase",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/workatbackbase/jobs"
+    },
+    {
+      "name": "docplanner",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/docplanner"
+    },
+    {
+      "name": "mindly",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/mindly"
+    },
+    {
+      "name": "riseguide",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/riseguide"
+    },
+    {
+      "name": "superhuman%20platform%20inc",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/superhuman%20platform%20inc"
+    },
+    {
+      "name": "nerostechnologies",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/nerostechnologies/jobs"
+    },
+    {
+      "name": "pfm",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/pfm/jobs"
+    },
+    {
+      "name": "precisionmedicinegroup",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/precisionmedicinegroup/jobs"
+    },
+    {
+      "name": "sentinellabs",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sentinellabs/jobs"
+    },
+    {
+      "name": "sonymusicentertainment",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sonymusicentertainment/jobs"
+    },
+    {
+      "name": "vonage",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/vonage/jobs"
+    },
+    {
+      "name": "gt-hq",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/gt-hq"
+    },
+    {
+      "name": "spoton",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/spoton"
+    },
+    {
+      "name": "appfire",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/appfire/jobs"
+    },
+    {
+      "name": "wolt",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wolt/jobs"
+    },
+    {
+      "name": "attio",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/attio"
+    },
+    {
+      "name": "fonio",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/fonio"
+    },
+    {
+      "name": "pragmatike",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/pragmatike"
+    },
+    {
+      "name": "biomapas",
+      "kind": "workable",
+      "where": "PL UA",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/biomapas?details=true"
+    },
+    {
+      "name": "booksy-1",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/booksy-1?details=true"
+    },
+    {
+      "name": "itd",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/itd/jobs"
+    },
+    {
+      "name": "mediabrands",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/mediabrands/jobs"
+    },
+    {
+      "name": "payoneer",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/payoneer/jobs"
+    },
+    {
+      "name": "referralsuseonly",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/referralsuseonly/jobs"
+    },
+    {
+      "name": "remotecom",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/remotecom/jobs"
+    },
+    {
+      "name": "quarks-tech",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/quarks-tech"
+    },
+    {
+      "name": "alex-staff-agency-careers",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/alex-staff-agency-careers?details=true"
+    },
+    {
+      "name": "housecall",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/housecall/jobs"
+    },
+    {
+      "name": "justanswer",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/justanswer/jobs"
+    },
+    {
+      "name": "pointwild",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/pointwild/jobs"
+    },
+    {
+      "name": "robotsandpencils",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/robotsandpencils/jobs"
+    },
+    {
+      "name": "ssreferrals",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/ssreferrals/jobs"
+    },
+    {
+      "name": "tatari",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tatari/jobs"
+    },
+    {
+      "name": "telnyx54",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/telnyx54/jobs"
+    },
+    {
+      "name": "42dot",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/42dot"
+    },
+    {
+      "name": "everfield",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/everfield"
+    },
+    {
+      "name": "solvd",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/solvd"
+    },
+    {
+      "name": "splitmetrics",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/splitmetrics"
+    },
+    {
+      "name": "stack-ai",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/stack-ai"
+    },
+    {
+      "name": "1global",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/1global?details=true"
+    },
+    {
+      "name": "arxroboticsgmbh",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/arxroboticsgmbh/jobs"
+    },
+    {
+      "name": "atlasxhm",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/atlasxhm/jobs"
+    },
+    {
+      "name": "dropbox",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/dropbox/jobs"
+    },
+    {
+      "name": "iterativehealth",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/iterativehealth/jobs"
+    },
+    {
+      "name": "kodiak",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/kodiak/jobs"
+    },
+    {
+      "name": "ledgy",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/ledgy/jobs"
+    },
+    {
+      "name": "okx",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/okx/jobs"
+    },
+    {
+      "name": "pubnub",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/pubnub/jobs"
+    },
+    {
+      "name": "quberesearchandtechnologies",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/quberesearchandtechnologies/jobs"
+    },
+    {
+      "name": "shelf",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/shelf/jobs"
+    },
+    {
+      "name": "sonatus",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sonatus/jobs"
+    },
+    {
+      "name": "starburst",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/starburst/jobs"
+    },
+    {
+      "name": "tanium",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tanium/jobs"
+    },
+    {
+      "name": "taskrabbit",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/taskrabbit/jobs"
+    },
+    {
+      "name": "toogoodtogo",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/toogoodtogo/jobs"
+    },
+    {
+      "name": "verkada",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/verkada/jobs"
+    },
+    {
+      "name": "wpp",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wpp/jobs"
+    },
+    {
+      "name": "alpacahealth",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/alpacahealth"
+    },
+    {
+      "name": "arq",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/arq"
+    },
+    {
+      "name": "clickup",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/clickup"
+    },
+    {
+      "name": "creatoriq",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/creatoriq"
+    },
+    {
+      "name": "everai",
+      "kind": "ashby",
+      "where": "PL UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/everai"
+    },
+    {
+      "name": "glia",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/glia"
+    },
+    {
+      "name": "lendable",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/lendable"
+    },
+    {
+      "name": "optro",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/optro"
+    },
+    {
+      "name": "ajaia",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/ajaia?details=true"
+    },
+    {
+      "name": "apexwheels",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/apexwheels?details=true"
+    },
+    {
+      "name": "catawiki",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/catawiki/jobs"
+    },
+    {
+      "name": "catonetworks",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/catonetworks/jobs"
+    },
+    {
+      "name": "convera",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/convera/jobs"
+    },
+    {
+      "name": "horacemannagents",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/horacemannagents/jobs"
+    },
+    {
+      "name": "mongodb",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs"
+    },
+    {
+      "name": "nearform",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/nearform/jobs"
+    },
+    {
+      "name": "nebius",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/nebius/jobs"
+    },
+    {
+      "name": "pandadoc",
+      "kind": "greenhouse",
+      "where": "PL UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/pandadoc/jobs"
+    },
+    {
+      "name": "peloton",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/peloton/jobs"
+    },
+    {
+      "name": "project44",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/project44/jobs"
+    },
+    {
+      "name": "qualtrics",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/qualtrics/jobs"
+    },
+    {
+      "name": "sezzle",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sezzle/jobs"
+    },
+    {
+      "name": "shipmonk",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/shipmonk/jobs"
+    },
+    {
+      "name": "stripe",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs"
+    },
+    {
+      "name": "sumup",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/sumup/jobs"
+    },
+    {
+      "name": "teads1",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/teads1/jobs"
+    },
+    {
+      "name": "tenstorrent",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tenstorrent/jobs"
+    },
+    {
+      "name": "texascartitleandpaydayloanservicesinc",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/texascartitleandpaydayloanservicesinc/jobs"
+    },
+    {
+      "name": "transfergo",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/transfergo/jobs"
+    },
+    {
+      "name": "wrike",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wrike/jobs"
+    },
+    {
+      "name": "zam",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/zam/jobs"
+    },
+    {
+      "name": "aurorasolar",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/aurorasolar"
+    },
+    {
+      "name": "comand-ai",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/comand-ai"
+    },
+    {
+      "name": "fiducial",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/fiducial"
+    },
+    {
+      "name": "intellistack",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/intellistack"
+    },
+    {
+      "name": "lumilens",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/lumilens"
+    },
+    {
+      "name": "mapbox",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/mapbox"
+    },
+    {
+      "name": "masabi",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/masabi"
+    },
+    {
+      "name": "mend-io",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/mend-io"
+    },
+    {
+      "name": "moss",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/moss"
+    },
+    {
+      "name": "satispay",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/satispay"
+    },
+    {
+      "name": "shiftkey",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/shiftkey"
+    },
+    {
+      "name": "action1",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/action1?details=true"
+    },
+    {
+      "name": "allucent",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/allucent?details=true"
+    },
+    {
+      "name": "alumil",
+      "kind": "workable",
+      "where": "UA",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/alumil?details=true"
+    },
+    {
+      "name": "archimed",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/archimed?details=true"
+    },
+    {
+      "name": "atleanworld",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/atleanworld?details=true"
+    },
+    {
+      "name": "avomind",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/avomind?details=true"
+    },
+    {
+      "name": "apolloio",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/apolloio/jobs"
+    },
+    {
+      "name": "aura798",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/aura798/jobs"
+    },
+    {
+      "name": "butternutbox",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/butternutbox/jobs"
+    },
+    {
+      "name": "collibra",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/collibra/jobs"
+    },
+    {
+      "name": "commvault",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/commvault/jobs"
+    },
+    {
+      "name": "cribl",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/cribl/jobs"
+    },
+    {
+      "name": "datadog",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs"
+    },
+    {
+      "name": "humansignal",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/humansignal/jobs"
+    },
+    {
+      "name": "levelaccess",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/levelaccess/jobs"
+    },
+    {
+      "name": "m2xenergyinc",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/m2xenergyinc/jobs"
+    },
+    {
+      "name": "memx",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/memx/jobs"
+    },
+    {
+      "name": "monks",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/monks/jobs"
+    },
+    {
+      "name": "oliver",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/oliver/jobs"
+    },
+    {
+      "name": "oneacrefund",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/oneacrefund/jobs"
+    },
+    {
+      "name": "perionnetworkltd",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/perionnetworkltd/jobs"
+    },
+    {
+      "name": "phoenixcontact",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/phoenixcontact/jobs"
+    },
+    {
+      "name": "remotereferralboardinternaluseonly",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/remotereferralboardinternaluseonly/jobs"
+    },
+    {
+      "name": "samsara",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/samsara/jobs"
+    },
+    {
+      "name": "scandit",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/scandit/jobs"
+    },
+    {
+      "name": "smartbear",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/smartbear/jobs"
+    },
+    {
+      "name": "snapmobileinc",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/snapmobileinc/jobs"
+    },
+    {
+      "name": "tactilemedical",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tactilemedical/jobs"
+    },
+    {
+      "name": "tenstorrentuniversity",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/tenstorrentuniversity/jobs"
+    },
+    {
+      "name": "toast",
+      "kind": "greenhouse",
+      "where": "UA",
+      "url": "https://boards-api.greenhouse.io/v1/boards/toast/jobs"
+    },
+    {
+      "name": "vtex",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/vtex/jobs"
+    },
+    {
+      "name": "wingspan",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/wingspan/jobs"
+    },
+    {
+      "name": "zscaler",
+      "kind": "greenhouse",
+      "where": "PL",
+      "url": "https://boards-api.greenhouse.io/v1/boards/zscaler/jobs"
+    },
+    {
+      "name": "alta-ares",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/alta-ares"
+    },
+    {
+      "name": "apron",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/apron"
+    },
+    {
+      "name": "brainly",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/brainly"
+    },
+    {
+      "name": "ceartas",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/ceartas"
+    },
+    {
+      "name": "curri",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/curri"
+    },
+    {
+      "name": "delian",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/delian"
+    },
+    {
+      "name": "hyperexponential",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/hyperexponential"
+    },
+    {
+      "name": "jump-app",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/jump-app"
+    },
+    {
+      "name": "klim",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/klim"
+    },
+    {
+      "name": "liven",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/liven"
+    },
+    {
+      "name": "montu-uk",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/montu-uk"
+    },
+    {
+      "name": "opal-os",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/opal-os"
+    },
+    {
+      "name": "openai",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/openai"
+    },
+    {
+      "name": "oscilar",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/oscilar"
+    },
+    {
+      "name": "picogrid",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/picogrid"
+    },
+    {
+      "name": "playson",
+      "kind": "ashby",
+      "where": "UA",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/playson"
+    },
+    {
+      "name": "rho",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/rho"
+    },
+    {
+      "name": "salespatriot",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/salespatriot"
+    },
+    {
+      "name": "stargate-foundation",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/stargate-foundation"
+    },
+    {
+      "name": "swap",
+      "kind": "ashby",
+      "where": "PL",
+      "url": "https://api.ashbyhq.com/posting-api/job-board/swap"
+    },
+    {
+      "name": "1000heads",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/1000heads?details=true"
+    },
+    {
+      "name": "adverity",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/adverity?details=true"
+    },
+    {
+      "name": "aerones",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/aerones?details=true"
+    },
+    {
+      "name": "asco-equipment",
+      "kind": "workable",
+      "where": "UA",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/asco-equipment?details=true"
+    },
+    {
+      "name": "aurora-3",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/aurora-3?details=true"
+    },
+    {
+      "name": "batgroup",
+      "kind": "workable",
+      "where": "PL",
+      "url": "https://apply.workable.com/api/v1/widget/accounts/batgroup?details=true"
+    }
+  ]
+}
