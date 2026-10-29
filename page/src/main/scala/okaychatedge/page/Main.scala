@@ -8,21 +8,22 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.scalajs.js
 
 /** the words of the page itself, in the browser's language — the chat answers in the language of what is written */
-final case class Words(market: String, message: String, example: String, send: String, offline: String => String):
+final case class Words(market: String, message: String, example: String, send: String, offline: String => String,
+                       inTelegram: String, telegram: Option[String] = None):
   /** okay-chat's greeting: all four languages, before a word of theirs is read */
   val greeting: String = Vector("Hi! How can I help?", "Cześć! W czym mogę pomóc?", "Вітаю! Чим можу допомогти?",
     "Привет! Чем могу помочь?").mkString("\n")
 
 object Words:
-  def of(lang: String): Words = lang.take(2).toLowerCase match
+  def of(lang: String, telegram: Option[String]): Words = (lang.take(2).toLowerCase match
     case "uk" => Words("ринок попиту і пропозиції", "Повідомлення", "наприклад: потрібен електрик, Вроцлав",
-      "Надіслати", e => s"немає зв'язку — спробуйте ще раз ($e)")
+      "Надіслати", e => s"немає зв'язку — спробуйте ще раз ($e)", "Telegram ↗")
     case "pl" => Words("rynek popytu i podaży", "Wiadomość", "na przykład: potrzebny elektryk, Wrocław", "Wyślij",
-      e => s"brak połączenia — spróbuj jeszcze raz ($e)")
+      e => s"brak połączenia — spróbuj jeszcze raz ($e)", "Telegram ↗")
     case "en" => Words("a market of supply and demand", "Message", "for example: need an electrician, Wrocław", "Send",
-      e => s"no connection — try again ($e)")
+      e => s"no connection — try again ($e)", "Telegram ↗")
     case _ => Words("рынок спроса и предложения", "Сообщение", "например: нужен электрик, Вроцлав", "Отправить",
-      e => s"нет связи — попробуйте ещё раз ($e)")
+      e => s"нет связи — попробуйте ещё раз ($e)", "Telegram ↗")).copy(telegram = telegram)
 
 /** THE PAGE, one line: the chat's screens on okay-faces' DOM face, its conversation this Worker's */
 object Main:
@@ -30,7 +31,8 @@ object Main:
     val root = Option(dom.document.getElementById("app")).getOrElse(dom.document.body)
     Typing.install()
     val _ = Async.toFuture(Dom.run(root, Look.skin, follow = true)(
-      Talk.overHttp(Talk.mine())(Chat.main(Words.of(dom.window.navigator.language)))))
+      Talk.overHttp(Talk.mine())(Chat.main(Words.of(dom.window.navigator.language,
+        Option(root.getAttribute("data-telegram")).map(_.trim.stripPrefix("@")).filter(_.nonEmpty))))))
 
 /** okay-ui's calm skin in the chat's violet, and the conversation's marks: bubbles, mine to the right (`css` first:
  * an object's vals are made in order, and `skin` reads it) */
@@ -46,6 +48,9 @@ object Look:
       |  font-weight: 700; color: #fff; background: linear-gradient(135deg, #ff8a5c, #ff4d6d); flex: none; }
       |body .okay-mark-who { display: flex; flex-direction: column; }
       |body .okay-mark-head .okay-text { margin: 0; }
+      |body .okay-mark-telegram { margin-left: auto; }
+      |body .okay-mark-telegram .okay-link { display: inline-block; padding: 6px 12px; border-radius: 16px;
+      |  background: #229ed9; color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; }
       |body .okay-mark-name .okay-text { font-weight: 600; }
       |body .okay-mark-sub .okay-text { font-size: 13px; opacity: .65; }
       |body .okay-mark-log { display: block; padding: 12px 0; }
@@ -94,7 +99,17 @@ object Look:
  * phone the keyboard's return is a new line and the button sends.
  */
 object Typing:
+  /** whether the page should stay at its end: the person was there, or has just sent — a screen drawn anew (after
+   * the «…» of sending) starts at the top, and is brought back to the end */
+  private var atEnd = true
+  private def end(): Double = dom.document.documentElement.scrollHeight.toDouble
+  private def nearEnd(): Boolean = dom.window.innerHeight + dom.window.scrollY >= end() - 120
+
   def install(): Unit =
+    dom.window.addEventListener("scroll", (_: dom.Event) => atEnd = nearEnd())
+    dom.document.addEventListener("submit", (_: dom.Event) => atEnd = true, true)
+    new dom.MutationObserver((_, _) => if atEnd && !nearEnd() then dom.window.scrollTo(0, end().toInt))
+      .observe(dom.document.body, new dom.MutationObserverInit { childList = true; subtree = true })
     val fine = dom.window.matchMedia("(pointer: fine)").matches
     val grows = js.Dynamic.global.CSS.supports("field-sizing", "content").asInstanceOf[Boolean]
     def line(t: dom.EventTarget): Option[dom.HTMLTextAreaElement] = t match

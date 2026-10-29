@@ -75,8 +75,11 @@ object Chat:
         t.wrote.map(x => Part.block("me")(withLinks(x)*)).toList ++ t.said.map(x => Part.block("bot")(withLinks(x)*)))
     val pending = s.sending.toList.flatMap(x =>
       List(Part.block("me-sending")(Part.text(x)), Part.block("bot-typing")(Part.text("…"))))
-    List(Part.block("head")(Part.block("avatar")(Part.text("O")),
-      Part.block("who")(Part.block("name")(Part.text("Okay! Chat")), Part.block("sub")(Part.text(w.market)))),
+    // the same conversation's other door: the bot (its name the page's, `data-telegram`)
+    val telegram = w.telegram.toList.map(bot => Part.block("telegram")(Part.link(w.inTelegram, s"https://t.me/$bot")))
+    List(Part.block("head")((List(Part.block("avatar")(Part.text("O")),
+      Part.block("who")(Part.block("name")(Part.text("Okay! Chat")), Part.block("sub")(Part.text(w.market)))) ++
+      telegram)*),
       Part.block("log")((said ++ pending)*)) ++ s.problem.map(Part.problem).toList
 
   def render(w: Words, s: State): Screen[Msg] =
