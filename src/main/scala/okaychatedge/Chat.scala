@@ -248,7 +248,9 @@ object Chat:
       stateOf(id).flatMap { state =>
         // okay-chat's: the message's own language if it shows one, else what this person wrote last
         val l = Lang.answer(text, state.lang)
-        val reply: Option[Said] ! Cloud = route.intent match
+        val reply: Option[Said] ! Cloud =
+          if Jobs.asked(text, route.intent) then Jobs.answer(text, l, at).map(t => Some(Said(t)))
+          else route.intent match
           case i if answers(i) => answer(id, i, text, at, l).map(t => Some(Said(t)))
           case "need" if tradeless(Embed.what(Edge.slot("need", "what", text), text)) =>
             unclear(text, l, state.recent, at).map(Some(_))

@@ -16,7 +16,8 @@ final class Router(rules: Vector[(String, js.RegExp)], probe: Probe, slots: Map[
   /** okay-chat's help rows — «say» — does — for `intents`, in rank order, in a language (Russian where it has none) */
   def help(code: String, intents: Set[String]): Vector[(String, String)] =
     helps.filter((i, _) => intents(i)).flatMap { (i, h) =>
-      val e = h.selectDynamic(code).asInstanceOf[js.UndefOr[js.Dynamic]].orElse(h.ru.asInstanceOf[js.UndefOr[js.Dynamic]])
+      val e = h.selectDynamic(code).asInstanceOf[js.UndefOr[js.Dynamic]]
+        .orElse(h.ru.asInstanceOf[js.UndefOr[js.Dynamic]])
       e.toOption.map(x => i -> s"• «${x.say}» — ${x.does}")
     }
 

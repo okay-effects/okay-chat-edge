@@ -96,3 +96,16 @@ object Lane:
       "chat_template_kwargs" -> Json.obj("enable_thinking" -> Json.Bool(false))))
       .map(j => said(j).map(_.trim)
         .filter(r => r.nonEmpty && r.length < 1500 && !r.contains("http") && !commits(r)))
+
+  /** a job search's words in English, as a job board searches (Workable): 1–3 words, or none */
+  def english(m: String, words: String): Option[String] ! Cloud =
+    Ai.run[Cloud](m, Json.obj(
+      "messages" -> Json.Arr(Vector(
+        message("system", "Translate the job search words to English as a job board would be searched: the role " +
+          "or skill only, 1-3 words, lowercase, nothing else. Example: \"бухгалтером\" -> \"accountant\"; " +
+          "\"программистом джава\" -> \"java developer\"."),
+        message("user", words))),
+      "max_tokens" -> Json.Num(20),
+      "chat_template_kwargs" -> Json.obj("enable_thinking" -> Json.Bool(false))))
+      .map(j => said(j).map(_.trim.toLowerCase.replaceAll("[^a-z0-9+#. -]", "").trim).filter(e =>
+        e.nonEmpty && e.length <= 40))

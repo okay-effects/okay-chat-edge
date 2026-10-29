@@ -9,7 +9,7 @@ rm -rf .wrangler/state/v3/do .wrangler/state/v3/d1
 tg=$((port + 1))
 node "$here/scripts/fake-telegram.mjs" "$tg" /tmp/okay-chat-edge-tg.jsonl & tgpid=$!
 npx wrangler dev --port "$port" --var EMBED:trigrams --var LANE_DAILY:0 --var OPEN_API:yes --var TELEGRAM_TOKEN:test-token --var TELEGRAM_SECRET:test-secret \
-  --var "TELEGRAM_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
+  --var "TELEGRAM_API:http://127.0.0.1:$tg" --var "JOBS_API:http://127.0.0.1:$tg" > /tmp/okay-chat-edge-e2e.log 2>&1 &
 pid=$!
 trap 'kill $pid $tgpid 2>/dev/null' EXIT
 for _ in $(seq 1 40); do curl -s -o /dev/null "http://127.0.0.1:$port/" && break; sleep 1; done
@@ -70,6 +70,16 @@ tgsay() { # user id, username, text
 check "a Telegram conversation is not the API's to read" \
   "$(curl -s -o /dev/null -w '%{http_code}' "$u/c/tg:101")" '403'
 check "…nor to speak in" "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'берусь 1' "$u/c/tg:101")" '403'
+# vacancies from Workable's search (the stand-in): the words, the place, remote read from the message
+jobs=$(say jobs1 'ищу работу scala разработчиком во Вроцлаве')
+check "vacancies: the keyword and the city" "$jobs" 'вакансии «scala», Wrocław — всего 2, первые 2:'
+check "…each with the employer and its page" "$jobs" '1. Scala Engineer — Acme, Wrocław, hybrid\nhttps://jobs.workable.com/view/1'
+check "…the city asked as Workable reads it" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" \
+  '"location":"Wrocław","query":"scala"'
+say jobs2 'szukam pracy scala zdalnie' > /dev/null
+check "Polish, remote" "$(grep '"jobs"' /tmp/okay-chat-edge-tg.jsonl | tail -1)" '"workplace":"remote"'
+check "none found: another word suggested" "$(say jobs3 'вакансии cobol, Kraków')" 'по «cobol», Kraków вакансий не нашёл'
+check "an offer of work is not a job search" "$(say jobs5 'могу работать сантехником, Вроцлав')" 'записал предложение'
 pageid="web:$(openssl rand -hex 16)"
 check "a page's socket: its turn pushed as it is kept" "$(node "$here/scripts/socket-check.mjs" "$u" "$pageid" 2>&1)" \
   '{"n":1,"turn":{"text":"помощь","reply":"Вот всё, что я умею.'
@@ -85,10 +95,11 @@ check "a Telegram offer, answered in the webhook" "$(tgsay 101 ivan 'умею к
 check "not understood, no model: what this is, and the help (Latin, no evidence: English)" \
   "$(tgsay 102 jane 'hmm')" 'this is a market of supply and demand'
 check "help: okay-chat's rows, only what the edge does" "$(say help1 'помощь')" '«берусь 3»'
+check "help names the vacancies" "$(say help1 'помощь')" '«вакансии scala, Вроцлав»'
 case "$(say help1 'помощь')" in *резюме*) echo "FAIL help lists what the edge cannot do"; fail=1 ;; *) echo "ok   help: no résumé" ;; esac
 check "my offers" "$(say bob 'мои предложения')" 'ваши предложения:\n1) ремонтирую сантехнику'
 check "my requests, none" "$(say bob 'мои заявки')" 'У вас пока нет заявок'
-check "«ищу работу»: which work is asked, nothing searched" "$(say job1 'Ищу работу')" 'это рынок спроса'
+check "«ищу работу»: which work is asked, nothing searched" "$(say job1 'Ищу работу')" 'Какую работу ищете?'
 case "$(curl -s "$u/c/job1")" in *shown*) echo "FAIL «ищу работу» searched"; fail=1 ;; *) echo "ok   not searched" ;; esac
 check "a Telegram need finds the Telegram offer" "$(tgsay 102 jane 'нужно положить плитку в ванной')" \
   'умею класть плитку'

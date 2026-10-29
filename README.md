@@ -210,6 +210,27 @@ side's «Вас спрашивают…» and «…согласились взя
 page: one every 20 s). A server restarted under an open page: the socket closed, opened again in a second, one read,
 the next reply by the new socket. `scripts/e2e.sh`: 55 checks (a socket's push, `scripts/socket-check.mjs`).
 
+## Step 12 (2026-10-29): vacancies from the internet
+
+«вакансии scala, Вроцлав», «ищу работу java разработчиком удалённо», «szukam pracy python Kraków», «jobs devops in
+Germany» — a message whose words name work (and which is not an offer of one's own) is a job search (`Jobs`): the
+keyword, the place (cities and countries of PL/UA/DE by their stems, in four languages) and «удалённо / zdalnie /
+remote» read from it, and Workable's public search asked (`jobs.workable.com/api/v1/jobs?query=…&location=…
+&workplace=remote`): the first five, each with the employer, the place, the workplace and the employer's page.
+okay-chat's rule for sources (specs/jobs.md: only open, legally clean ones — Workable's robots.txt says `search=yes,
+ai-input=yes`; pracuj.pl, OLX, LinkedIn forbid collection and are not read). Workable searches in English: a search
+with no Latin word is put into English by the model lane (within its budget) — «бухгалтером в Польше» → «accountant»,
+Poland, 36. One request a search, ~150 KB, read by the platform's JSON.parse (the 10 ms of CPU). «ищу работу» alone
+asks which work. The help names it, so the lane knows it too.
+
+Measured live: «вакансии scala» 266 in all; «… во Вроцлаве» 1; «python удалённо» 3541; «szukam pracy java Kraków»
+3, answered in Polish; «бухгалтером удалённо» → accountant, 2482. Workable's own relevance is loose («java» in Kraków
+gives a Data & AI Engineer). `scripts/e2e.sh`: 62 checks, Workable's stand-in in `scripts/fake-telegram.mjs`
+(`JOBS_API`).
+
+Not yet: okay-chat's 208 employers' own boards (Greenhouse, Ashby — 0.4–2.4 MB a board: an import by cron, a board
+a tick, to stay inside 10 ms), more than the first five («ещё»), a search remembered and its new vacancies told.
+
 Run: `scripts/data.sh` (okay-chat beside this repository), `scripts/kv.sh --local`, then `cd worker && npx wrangler
 dev` and `curl -X POST --data 'нужен электрик' http://127.0.0.1:8787/c/ann`.
 

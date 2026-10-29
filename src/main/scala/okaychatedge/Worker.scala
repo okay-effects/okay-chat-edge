@@ -38,9 +38,11 @@ object Edge:
   def slot(intent: String, name: String, text: String): Option[String] = router.slot(intent, name, text)
 
   /** the help rows for the intents the edge acts on (`Chat.acted`) */
-  def help(l: Lang): Vector[String] = router.help(Lang.code(l), Chat.acted).map {
-    case ("requests", _) => Phrases.requestsHelp(l)
-    case (_, row) => row
+  def help(l: Lang): Vector[String] = router.help(Lang.code(l), Chat.acted).flatMap {
+    case ("requests", _) => Vector(Phrases.requestsHelp(l))
+    // vacancies from the internet, the edge's own, beside the search among people
+    case ("need", row) => Vector(row, Phrases.jobsHelp(l))
+    case (_, row) => Vector(row)
   }
 
   /** a message's vector by the static table */

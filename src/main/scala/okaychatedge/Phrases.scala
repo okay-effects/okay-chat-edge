@@ -133,7 +133,8 @@ object Phrases:
     case Ru => "это рынок спроса и предложения: здесь предлагают работу, услуги, товары, аренду — и ищут их. "
     case Uk => "це ринок попиту і пропозиції: тут пропонують роботу, послуги, товари, оренду — і шукають їх. "
     case Pl => "to rynek popytu i podaży: tu oferuje się pracę, usługi, towary, wynajem — i ich szuka. "
-    case En => "this is a market of supply and demand: people offer work, services, goods, rentals — and look for them. "
+    case En => "this is a market of supply and demand: people offer work, services, goods, rentals — " +
+      "and look for them. "
 
   /** okay-chat's help: built from the intent table's rows (here: the intents the edge acts on) */
   def help(l: Lang, rows: Vector[String]): String =
@@ -186,3 +187,61 @@ object Phrases:
     case Uk => "• «мої заявки» — покажу, що ви ШУКАЄТЕ; про нові відповідні повідомлю сам"
     case Pl => "• „moje zgłoszenia” — pokażę, czego SZUKASZ; o nowych pasujących dam znać sam"
     case En => "• \"my requests\" — I will show what you are LOOKING FOR, and tell you of new matches myself"
+
+  // ---- vacancies (the edge's own: okay-chat finds them by its résumé flow)
+
+  private def where(l: Lang, location: Option[String], remote: Boolean): String =
+    location.fold("")(p => s", $p") + (if !remote then "" else l match
+      case Ru => ", удалённо"
+      case Uk => ", віддалено"
+      case Pl => ", zdalnie"
+      case En => ", remote")
+
+  def jobs(l: Lang, query: String, location: Option[String], remote: Boolean, total: Int, lines: Vector[String])
+    : String =
+    val head = l match
+      case Ru => s"вакансии «$query»${where(l, location, remote)} — всего $total, первые ${lines.size}:"
+      case Uk => s"вакансії «$query»${where(l, location, remote)} — усього $total, перші ${lines.size}:"
+      case Pl => s"oferty „$query”${where(l, location, remote)} — razem $total, pierwsze ${lines.size}:"
+      case En => s"vacancies \"$query\"${where(l, location, remote)} — $total in all, the first ${lines.size}:"
+    val tail = l match
+      case Ru => "Откликайтесь на странице работодателя. Источник — Workable."
+      case Uk => "Відгукуйтеся на сторінці роботодавця. Джерело — Workable."
+      case Pl => "Aplikuj na stronie pracodawcy. Źródło — Workable."
+      case En => "Apply on the employer's page. Source: Workable."
+    s"$head\n\n${lines.mkString("\n\n")}\n\n$tail"
+
+  def noJobs(l: Lang, query: String, location: Option[String], remote: Boolean): String = l match
+    case Ru => s"по «$query»${where(l, location, remote)} вакансий не нашёл. Попробуйте другое слово или без города, " +
+      "например: «вакансии java, Kraków»"
+    case Uk => s"за «$query»${where(l, location, remote)} вакансій не знайшов. Спробуйте інше слово або без міста, " +
+      "наприклад: «вакансії java, Kraków»"
+    case Pl => s"dla „$query”${where(l, location, remote)} nie znalazłem ofert. " +
+      "Spróbuj innego słowa albo bez miasta, " +
+      "na przykład: „oferty java, Kraków”"
+    case En => s"no vacancies for \"$query\"${where(l, location, remote)}. Try another word, or no city, " +
+      "for example: \"jobs java, Kraków\""
+
+  def whichJob(l: Lang): String = l match
+    case Ru => "Какую работу ищете? Напишите ключевое слово и, если нужно, город или «удалённо» — например: " +
+      "«вакансии scala, Вроцлав»"
+    case Uk => "Яку роботу шукаєте? Напишіть ключове слово і, якщо треба, місто або «віддалено» — наприклад: " +
+      "«вакансії scala, Вроцлав»"
+    case Pl => "Jakiej pracy szukasz? Napisz słowo kluczowe i, jeśli trzeba, miasto albo „zdalnie” — na przykład: " +
+      "„oferty scala, Wrocław”"
+    case En => "What work are you looking for? Write a keyword and, if you like, a city or \"remote\" — for example: " +
+      "\"jobs scala, Wrocław\""
+
+  def jobsUnreachable(l: Lang, why: String): String = l match
+    case Ru => s"источник вакансий сейчас не отвечает ($why) — попробуйте чуть позже"
+    case Uk => s"джерело вакансій зараз не відповідає ($why) — спробуйте трохи пізніше"
+    case Pl => s"źródło ofert teraz nie odpowiada ($why) — spróbuj za chwilę"
+    case En => s"the vacancy source is not answering just now ($why) — try again a little later"
+
+  def jobsHelp(l: Lang): String = l match
+    case Ru => "• «вакансии scala, Вроцлав» — найду вакансии в интернете (Workable) по слову, городу или «удалённо»"
+    case Uk => "• «вакансії scala, Вроцлав» — знайду вакансії в інтернеті (Workable) за словом, містом або «віддалено»"
+    case Pl => "• „oferty scala, Wrocław” — znajdę oferty pracy w internecie (Workable) po słowie, mieście " +
+      "albo „zdalnie”"
+    case En => "• \"jobs scala, Wrocław\" — I will find vacancies on the internet (Workable) by a word, a city " +
+      "or \"remote\""
